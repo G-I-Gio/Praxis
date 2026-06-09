@@ -1,4 +1,4 @@
-import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
@@ -95,10 +95,14 @@ const Answers = ({
 
       <div>
         <div className="mx-auto mb-4 flex w-full max-w-7xl justify-between gap-1 px-2 text-lg font-bold text-white md:text-xl">
-          <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
-            <span className="translate-y-1 text-sm">{t("game:hud.time")}</span>
-            <span>{cooldown}</span>
-          </div>
+          {time !== NO_TIME_LIMIT && (
+            <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
+              <span className="translate-y-1 text-sm">
+                {t("game:hud.time")}
+              </span>
+              <span>{cooldown}</span>
+            </div>
+          )}
           <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
             <span className="translate-y-1 text-sm">
               {t("game:hud.answers")}

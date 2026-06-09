@@ -59,6 +59,8 @@ export const EVENTS = {
   },
 } as const
 
+export const NO_TIME_LIMIT = -1
+
 export const MEDIA_TYPES = {
   IMAGE: "image",
   VIDEO: "video",

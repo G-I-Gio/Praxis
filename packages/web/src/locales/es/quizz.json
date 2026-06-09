@@ -9,6 +9,8 @@
     "config": {
       "answerTime": "Tiempo de respuesta",
       "answerTimeHint": "Tiempo que tienen los jugadores para responder",
+      "noTimeLimit": "Sin límite de tiempo",
+      "noTimeLimitHint": "Los puntos se otorgan según el orden de respuesta. No hay límite de tiempo para responder.",
       "questionDisplay": "Visualización de la pregunta",
       "questionDisplayHint": "Duración antes de que aparezcan las respuestas",
       "timings": "Tiempos"

@@ -1,5 +1,5 @@
 // oxlint-disable typescript/no-unnecessary-condition
-import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type {
   Answer,
   GameResult,
@@ -16,7 +16,7 @@ import {
 } from "@razzia/common/types/game/status"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
-import { timeToPoint } from "@razzia/socket/utils/game"
+import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
 import { nanoid } from "nanoid"
 
@@ -245,10 +245,21 @@ export class RoundManager {
       return
     }
 
+    const points = (() => {
+      if (question.time === NO_TIME_LIMIT) {
+        return orderToPoint(
+          this.playersAnswers.length,
+          this.opts.players.count(),
+        )
+      }
+
+      return timeToPoint(this.startTime, question.time)
+    })()
+
     this.playersAnswers.push({
       playerId: player.id,
       answerId,
-      points: timeToPoint(this.startTime, question.time),
+      points,
     })
 
     this.opts.send(socket.id, STATUS.WAIT, {

@@ -4,13 +4,17 @@ interface LabelProps {
   icon: ReactNode
   label: string
   unit?: string
+  action?: ReactNode
 }
 
-const Label = ({ icon, label, unit = "sec" }: LabelProps) => (
+const Label = ({ icon, label, unit = "sec", action }: LabelProps) => (
   <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
     {icon}
     {label}
-    <span className="text-xs font-normal text-gray-400">({unit})</span>
+    {unit && (
+      <span className="text-xs font-normal text-gray-400">({unit})</span>
+    )}
+    {action && <div className="ml-auto">{action}</div>}
   </div>
 )
 

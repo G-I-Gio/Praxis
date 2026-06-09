@@ -1,4 +1,4 @@
-import { EVENTS } from "@razzia/common/constants"
+import { EVENTS, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { Server } from "@razzia/common/types/game/socket"
 
 export class CooldownTimer {
@@ -17,6 +17,18 @@ export class CooldownTimer {
     }
 
     this.active = true
+
+    if (seconds === NO_TIME_LIMIT) {
+      return new Promise<void>((resolve) => {
+        const interval = setInterval(() => {
+          if (!this.active) {
+            clearInterval(interval)
+            resolve()
+          }
+        }, 1000)
+      })
+    }
+
     let count = seconds - 1
 
     return new Promise<void>((resolve) => {

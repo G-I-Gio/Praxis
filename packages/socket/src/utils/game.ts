@@ -54,13 +54,25 @@ export const normalizeFilename = (subject: string) => {
   return `${slug}-${shortId}`
 }
 
+const MAX_POINTS = 1000
+
+export const orderToPoint = (index: number, totalPlayers: number): number => {
+  if (totalPlayers <= 1) {
+    return MAX_POINTS
+  }
+
+  return Math.round(
+    MAX_POINTS - (index / (totalPlayers - 1)) * (MAX_POINTS / 2),
+  )
+}
+
 export const timeToPoint = (startTime: number, secondes: number): number => {
-  let points = 1000
+  let points = MAX_POINTS
 
   const actualTime = Date.now()
   const tempsPasseEnSecondes = (actualTime - startTime) / 1000
 
-  points -= (1000 / secondes) * tempsPasseEnSecondes
+  points -= (MAX_POINTS / secondes) * tempsPasseEnSecondes
   points = Math.max(0, points)
 
   return points

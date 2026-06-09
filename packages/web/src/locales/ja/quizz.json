@@ -9,6 +9,8 @@
     "config": {
       "answerTime": "回答時間",
       "answerTimeHint": "プレイヤーが回答できる時間",
+      "noTimeLimit": "制限時間なし",
+      "noTimeLimitHint": "ポイントは回答順に付与されます。回答に制限時間はありません。",
       "questionDisplay": "問題表示",
       "questionDisplayHint": "回答が表示されるまでの時間",
       "timings": "タイミング"
