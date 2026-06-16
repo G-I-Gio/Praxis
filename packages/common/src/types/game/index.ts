@@ -1,4 +1,16 @@
-import type { MEDIA_TYPES } from "@razzia/common/constants"
+import type {
+  MEDIA_TYPES,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
+
+export type QuestionType = (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES]
+
+export type ScoringMode = (typeof SCORING_MODES)[keyof typeof SCORING_MODES]
+
+export interface MultiQuestionOptions {
+  scoringMode: ScoringMode
+}
 
 export interface Player {
   id: string
@@ -11,7 +23,7 @@ export interface Player {
 
 export interface Answer {
   playerId: string
-  answerId: number
+  answerIds: number[]
   points: number
 }
 
@@ -25,12 +37,14 @@ export interface QuestionMedia {
 }
 
 export interface Question {
+  type?: QuestionType
   question: string
   media?: QuestionMedia
   answers: string[]
   solutions: number[]
   cooldown: number
   time: number
+  options?: MultiQuestionOptions
 }
 
 export interface Quizz {
@@ -52,7 +66,7 @@ export interface GameUpdateQuestion {
 
 export interface PlayerAnswerRecord {
   playerName: string
-  answerId: number | null
+  answerIds: number[] | null
 }
 
 export type QuestionResult = Question & {

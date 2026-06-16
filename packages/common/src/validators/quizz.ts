@@ -1,4 +1,8 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
+import {
+  MEDIA_TYPES,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
 import { z } from "zod"
 
 export const questionMediaValidator = z.object({
@@ -8,7 +12,12 @@ export const questionMediaValidator = z.object({
   url: z.url("errors:quizz.invalidMediaUrl"),
 })
 
+const multiOptionsValidator = z.object({
+  scoringMode: z.enum(SCORING_MODES).default(SCORING_MODES.BALANCED),
+})
+
 const questionValidator = z.object({
+  type: z.enum(QUESTION_TYPES).default(QUESTION_TYPES.SINGLE),
   question: z.string().min(1, "errors:quizz.questionEmpty"),
   media: questionMediaValidator.optional(),
   answers: z
@@ -20,6 +29,7 @@ const questionValidator = z.object({
     .transform((v) => (Array.isArray(v) ? v : [v])),
   cooldown: z.number().int().min(3).max(15),
   time: z.number().int().min(-1),
+  options: multiOptionsValidator.optional(),
 })
 
 export const quizzValidator = z.object({

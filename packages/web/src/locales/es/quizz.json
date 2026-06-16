@@ -13,7 +13,17 @@
       "noTimeLimitHint": "Los puntos se otorgan según el orden de respuesta. No hay límite de tiempo para responder.",
       "questionDisplay": "Visualización de la pregunta",
       "questionDisplayHint": "Duración antes de que aparezcan las respuestas",
-      "timings": "Tiempos"
+      "timings": "Tiempos",
+      "questionType": "Tipo de pregunta",
+      "answerMode": "Modo de respuesta",
+      "multiSelect": "Selección múltiple",
+      "scoringMode": "Modo de puntuación",
+      "scoringMode.strict": "Estricto",
+      "scoringMode.balanced": "Equilibrado",
+      "scoringMode.lenient": "Permisivo",
+      "scoringModeHint.strict": "Puntos solo si todas las respuestas correctas están marcadas y ninguna incorrecta",
+      "scoringModeHint.balanced": "Puntos parciales: selecciones correctas menos las incorrectas",
+      "scoringModeHint.lenient": "Puntos por respuesta correcta, sin penalización por incorrectas"
     },
     "deleteQuestion": "Eliminar pregunta",
     "deleteQuestionConfirm": "¿Estás seguro de que quieres eliminar esta pregunta?",
@@ -27,5 +37,9 @@
   },
   "quizzSaved": "Cuestionario guardado con éxito",
   "quizzUpdated": "Cuestionario actualizado con éxito",
+  "questionType": {
+    "single": "Opción única",
+    "multi": "Opción múltiple"
+  },
   "titleQuizzPlaceholder": "Título del cuestionario..."
 }
