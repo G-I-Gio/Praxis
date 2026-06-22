@@ -1,7 +1,7 @@
-export { default as AnswerComponent } from "@razzia/web/features/questions/single/AnswerComponent"
+export { default as AnswerComponent } from "@razzia/web/features/questions/single/components/SingleAnswers"
 
-export { default as ConfigComponent } from "@razzia/web/features/questions/single/ConfigComponent"
+export { default as ConfigComponent } from "@razzia/web/features/questions/single/components/SingleConfig"
 
-export { default as SolutionPicker } from "@razzia/web/features/questions/single/SolutionPicker"
+export { default as SolutionPicker } from "@razzia/web/features/questions/single/components/SinglePicker"
 
 export const labelKey = "quizz:questionType.single"
