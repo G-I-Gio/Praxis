@@ -11,12 +11,15 @@ const SingleSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
 
     if (current.includes(index)) {
       const next = current.filter((s) => s !== index)
+
       updateQuestion(currentIndex, {
         solutions: next.length > 0 ? next : [index],
       })
-    } else {
-      updateQuestion(currentIndex, { solutions: [...current, index] })
+
+      return
     }
+
+    updateQuestion(currentIndex, { solutions: [...current, index] })
   }
 
   return (

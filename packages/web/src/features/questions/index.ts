@@ -1,4 +1,4 @@
-import type { QuestionType } from "@razzia/common/types/game"
+import type { QuestionOptions, QuestionType } from "@razzia/common/types/game"
 import * as multi from "@razzia/web/features/questions/multi"
 import * as single from "@razzia/web/features/questions/single"
 import type {
@@ -9,6 +9,7 @@ import type { ComponentType } from "react"
 
 interface QuestionRegistryEntry {
   labelKey: string
+  defaultOptions?: QuestionOptions
   AnswerComponent: ComponentType<AnswerComponentProps>
   ConfigComponent: ComponentType
   SolutionPicker: ComponentType<SolutionPickerProps>
@@ -18,3 +19,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   single,
   multi,
 }
+
+export const QUESTION_TYPE_LIST = Object.keys(
+  QUESTION_REGISTRY,
+) as QuestionType[]

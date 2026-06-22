@@ -12,6 +12,8 @@ export interface MultiQuestionOptions {
   scoringMode: ScoringMode
 }
 
+export type QuestionOptions = MultiQuestionOptions
+
 export interface Player {
   id: string
   clientId: string
@@ -37,14 +39,14 @@ export interface QuestionMedia {
 }
 
 export interface Question {
-  type?: QuestionType
+  type: QuestionType
   question: string
   media?: QuestionMedia
   answers: string[]
   solutions: number[]
   cooldown: number
   time: number
-  options?: MultiQuestionOptions
+  options?: QuestionOptions
 }
 
 export interface Quizz {

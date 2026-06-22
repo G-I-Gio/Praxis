@@ -1,7 +1,7 @@
 import type {
-  MultiQuestionOptions,
   Player,
   QuestionMedia,
+  QuestionOptions,
   QuestionType,
 } from "@razzia/common/types/game"
 
@@ -35,7 +35,7 @@ export interface CommonStatusDataMap {
     time: number
     totalPlayer: number
     questionType: QuestionType
-    options?: MultiQuestionOptions
+    options?: QuestionOptions
   }
   SHOW_RESULT: {
     correct: boolean

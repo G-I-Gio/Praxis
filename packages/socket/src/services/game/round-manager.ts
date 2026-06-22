@@ -1,10 +1,5 @@
 // oxlint-disable typescript/no-unnecessary-condition
-import {
-  EVENTS,
-  MEDIA_TYPES,
-  NO_TIME_LIMIT,
-  QUESTION_TYPES,
-} from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type {
   Answer,
   GameResult,
@@ -152,7 +147,7 @@ export class RoundManager {
       media: question.media,
       time: question.time,
       totalPlayer: this.opts.players.count(),
-      questionType: question.type ?? "single",
+      questionType: question.type,
       options: question.options,
     })
 
@@ -195,14 +190,9 @@ export class RoundManager {
             return 0
           }
 
-          const scoring =
-            QUESTION_SCORING[question.type ?? QUESTION_TYPES.SINGLE]
+          const scoring = QUESTION_SCORING[question.type]
 
-          return scoring(
-            playerAnswer.answerIds,
-            question.solutions,
-            question.options,
-          )
+          return scoring(question, playerAnswer.answerIds)
         })()
 
         const points = Math.round((playerAnswer?.points ?? 0) * scoreMultiplier)

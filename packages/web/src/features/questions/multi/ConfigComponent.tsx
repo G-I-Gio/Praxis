@@ -20,9 +20,9 @@ const MultiConfig = () => {
     label: t(`quizz:question.config.scoringMode.${mode}`),
   }))
 
-  const handleScoringModeChange = (mode: string) => {
+  const handleScoringModeChange = (mode: ScoringMode) => {
     updateQuestion(currentIndex, {
-      options: { scoringMode: mode as ScoringMode },
+      options: { scoringMode: mode },
     })
   }
 

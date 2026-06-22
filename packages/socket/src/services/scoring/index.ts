@@ -1,15 +1,8 @@
-import type {
-  MultiQuestionOptions,
-  QuestionType,
-} from "@razzia/common/types/game"
+import type { Question, QuestionType } from "@razzia/common/types/game"
 import * as multi from "./multi"
 import * as single from "./single"
 
-type ScoringFn = (
-  answerIds: number[],
-  solutions: number[],
-  options?: MultiQuestionOptions,
-) => number
+export type ScoringFn = (_question: Question, _answerIds: number[]) => number
 
 export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [single.type]: single.scoring,

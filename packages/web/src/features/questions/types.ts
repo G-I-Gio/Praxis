@@ -1,8 +1,8 @@
-import type { MultiQuestionOptions } from "@razzia/common/types/game"
+import type { QuestionOptions } from "@razzia/common/types/game"
 
 export interface AnswerComponentProps {
   answers: string[]
-  options?: MultiQuestionOptions
+  options?: QuestionOptions
   onSubmit: (_answerKeys: number[]) => void
   readOnly?: boolean
 }

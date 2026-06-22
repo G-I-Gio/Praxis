@@ -12,7 +12,7 @@ const QuestionEditorAnswers = () => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
 
-  const questionType = currentQuestion.type ?? "single"
+  const questionType = currentQuestion.type
   const { SolutionPicker } = QUESTION_REGISTRY[questionType]
 
   const updateAnswer = (index: number, value: string) => {
