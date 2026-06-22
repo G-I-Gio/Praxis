@@ -15,7 +15,6 @@
       "questionDisplayHint": "Duration before answers appear",
       "timings": "Timings",
       "answerMode": "Answer mode",
-      "multiSelect": "Multiple selection",
       "scoringMode": "Scoring mode",
       "scoringMode.strict": "Strict",
       "scoringMode.balanced": "Balanced",

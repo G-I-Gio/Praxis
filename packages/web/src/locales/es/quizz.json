@@ -15,7 +15,6 @@
       "questionDisplayHint": "Duración antes de que aparezcan las respuestas",
       "timings": "Tiempos",
       "answerMode": "Modo de respuesta",
-      "multiSelect": "Selección múltiple",
       "scoringMode": "Modo de puntuación",
       "scoringMode.strict": "Estricto",
       "scoringMode.balanced": "Equilibrado",

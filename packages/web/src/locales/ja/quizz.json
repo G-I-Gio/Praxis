@@ -15,7 +15,6 @@
       "questionDisplayHint": "回答が表示されるまでの時間",
       "timings": "タイミング",
       "answerMode": "回答モード",
-      "multiSelect": "複数選択",
       "scoringMode": "採点モード",
       "scoringMode.strict": "厳格",
       "scoringMode.balanced": "バランス",
