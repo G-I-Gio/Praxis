@@ -4,7 +4,6 @@ import {
   QUESTION_TYPE_LIST,
 } from "@razzia/web/features/questions"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
-import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
 import ConfigSelect from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSelect"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { LayoutList } from "lucide-react"
@@ -31,19 +30,17 @@ const QuestionEditorConfig = () => {
 
   return (
     <aside className="z-10 m-3 flex w-68 shrink-0 flex-col gap-6 self-start overflow-auto rounded-xl bg-white p-4 shadow-sm">
-      <ConfigSection title={t("quizz:question.config.questionType")}>
-        <ConfigField>
-          <ConfigField.Label
-            icon={<LayoutList className="size-4" />}
-            label={t("quizz:question.config.answerMode")}
-          />
-          <ConfigSelect
-            value={questionType}
-            options={typeOptions}
-            onValueChange={handleTypeChange}
-          />
-        </ConfigField>
-      </ConfigSection>
+      <ConfigField>
+        <ConfigField.Label
+          icon={<LayoutList className="size-4" />}
+          label={t("quizz:question.config.answerMode")}
+        />
+        <ConfigSelect
+          value={questionType}
+          options={typeOptions}
+          onValueChange={handleTypeChange}
+        />
+      </ConfigField>
 
       <ConfigComponent />
     </aside>
