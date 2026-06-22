@@ -6,10 +6,11 @@ import Game from "@razzia/socket/services/game"
 import manager from "@razzia/socket/services/manager"
 import Registry from "@razzia/socket/services/registry"
 import { withGame } from "@razzia/socket/utils/game"
+import { getClientId } from "@razzia/socket/utils/socket"
 
 export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
-  const clientId = socket.handshake.auth.clientId as string
+  const clientId = getClientId(socket)
 
   const handleManagerLeave = (game: Game) => {
     game.setManagerDisconnected()

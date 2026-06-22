@@ -52,10 +52,10 @@ const Answers = ({
   }
 
   useEffect(() => {
-    const disabledMusicMedia = [
+    const disabledMusicMedia: QuestionMediaType[] = [
       MEDIA_TYPES.AUDIO,
       MEDIA_TYPES.VIDEO,
-    ] as QuestionMediaType[]
+    ]
 
     if (disabledMusicMedia.includes(media?.type)) {
       return
