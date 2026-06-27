@@ -7,7 +7,8 @@ Thank you for your interest in contributing!
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Razzia.git`
 3. Install dependencies: `npm install` (in both root and client folders if applicable)
-4. Create a branch: `git checkout -b feat/your-feature-name`
+4. Checkout the `dev` branch: `git checkout dev`
+5. Create a branch from `dev`: `git checkout -b feat/your-feature-name`
 
 ## Branch Naming
 
@@ -28,6 +29,8 @@ chore: update dependencies
 
 ## Pull Requests
 
+- **Target the `dev` branch**, not `main`. PRs targeting `main` directly will not be merged except for critical security hotfixes.
+- If you already have a local clone, make sure to pull the latest changes from `dev` before starting: `git checkout dev && git pull`
 - **One PR = one feature or fix.** Do not bundle multiple features in a single PR — it becomes unmanageable to review and harder to revert if something breaks.
 - Make sure the CI passes before requesting review
 - Link any related issue with `Closes #123`
