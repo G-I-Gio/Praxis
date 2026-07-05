@@ -272,8 +272,8 @@ class Game {
     this.round.abortQuestion(socket)
   }
 
-  showLeaderboard() {
-    this.round.showLeaderboard()
+  showLeaderboard(socket: Socket) {
+    this.round.showLeaderboard(socket)
   }
 }
 

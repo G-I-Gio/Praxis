@@ -146,7 +146,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   )
 
   socket.on(EVENTS.MANAGER.SHOW_LEADERBOARD, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.showLeaderboard()),
+    withGame(gameId, socket, (game) => game.showLeaderboard(socket)),
   )
 
   socket.on(EVENTS.MANAGER.LEAVE, ({ gameId }) => {
