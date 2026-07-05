@@ -55,6 +55,15 @@ docker run -d \
   ralex91/razzia:latest
 ```
 
+The image is also published on the GitHub Container Registry, if you prefer using it instead of Docker Hub:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v ./config:/app/config \
+  ghcr.io/ralex91/razzia:latest
+```
+
 **Configuration Volume:**
 The `-v ./config:/app/config` option mounts a local `config` folder to persist your game settings and quizzes. This allows you to:
 
