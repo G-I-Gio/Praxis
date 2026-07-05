@@ -58,3 +58,5 @@ Quiz Options:
   - `time`: Time in seconds allowed to answer (5-120)
   - `maxPoints`: Maximum points awarded for a correct answer (default: `1000`, min: `0`)
   - `penalty`: Points deducted for a wrong answer (default: none, min: `0`). The player's total cannot go below 0. Unanswered questions are not penalised.
+
+> **Note:** the app automatically adds and manages an `id` field inside each quiz file the first time it's loaded — you don't need to set it yourself, and editing it manually may cause conflicts if it collides with another quiz's id.

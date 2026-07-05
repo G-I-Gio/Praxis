@@ -7,7 +7,8 @@ import type {
 import { quizzValidator } from "@razzia/common/validators/quizz"
 import { normalizeFilename } from "@razzia/socket/utils/game"
 import fs from "fs"
-import { isAbsolute, relative, resolve } from "path"
+import { nanoid } from "nanoid"
+import { join, resolve } from "path"
 
 interface GameConfig {
   managerPassword: string
@@ -20,24 +21,59 @@ const getPath = (path = "") =>
     ? resolve(inContainerPath, path)
     : resolve(process.cwd(), "../../config", path)
 
-// Ids come from the network and are interpolated into file paths, so they must
-// be strictly validated to prevent path traversal (e.g. id = "../game").
-const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
+const readJson = (filePath: string): Record<string, unknown> | null => {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<
+      string,
+      unknown
+    >
+  } catch {
+    return null
+  }
+}
 
-const getSafePath = (subDir: string, id: unknown): string => {
-  if (typeof id !== "string" || !SAFE_ID_PATTERN.test(id)) {
-    throw new Error(`Invalid id "${String(id)}"`)
+// Lstat (not stat) so a symlink planted in the config dir is skipped instead
+// of followed outside it.
+const listJsonFiles = (dirPath: string): string[] =>
+  fs.readdirSync(dirPath).filter((file) => {
+    if (!file.endsWith(".json")) {
+      return false
+    }
+
+    try {
+      return fs.lstatSync(join(dirPath, file)).isFile()
+    } catch {
+      return false
+    }
+  })
+
+const resolveFileId = (dirPath: string, file: string): string => {
+  const data = readJson(join(dirPath, file))
+
+  return typeof data?.id === "string" ? data.id : file.replace(/\.json$/u, "")
+}
+
+// Never builds a path from `id` — avoids path traversal by construction.
+const findFileById = (subDir: string, id: string): string | undefined => {
+  const dirPath = getPath(subDir)
+
+  if (!fs.existsSync(dirPath)) {
+    return undefined
   }
 
-  const baseDir = getPath(subDir)
-  const target = resolve(baseDir, `${id}.json`)
-  const rel = relative(baseDir, target)
+  return listJsonFiles(dirPath).find(
+    (file) => resolveFileId(dirPath, file) === id,
+  )
+}
 
-  if (rel.startsWith("..") || isAbsolute(rel)) {
-    throw new Error(`Invalid id "${id}"`)
+const requireFileById = (subDir: string, id: string, label: string): string => {
+  const file = findFileById(subDir, id)
+
+  if (!file) {
+    throw new Error(`${label} "${id}" not found`)
   }
 
-  return target
+  return file
 }
 
 export const initConfig = () => {
@@ -69,7 +105,7 @@ export const initConfig = () => {
 
     fs.writeFileSync(
       getPath("quizz/example.json"),
-      JSON.stringify(EXAMPLE_QUIZZ, null, 2),
+      JSON.stringify({ id: nanoid(), ...EXAMPLE_QUIZZ }, null, 2),
     )
   }
 }
@@ -95,24 +131,17 @@ export const getGameConfig = (): GameConfig => {
 export const getQuizzMeta = () =>
   getQuizz().map(({ id, subject }) => ({ id, subject }))
 
-export const getQuizzById = (id: string) => {
-  const filePath = getSafePath("quizz", id)
+export const getQuizzById = (id: string): QuizzWithId => {
+  const quizz = getQuizz().find((q) => q.id === id)
 
-  if (!fs.existsSync(filePath)) {
+  if (!quizz) {
     throw new Error(`Quizz "${id}" not found`)
   }
 
-  const data = fs.readFileSync(filePath, "utf-8")
-  const result = quizzValidator.safeParse(JSON.parse(data))
-
-  if (!result.success) {
-    throw new Error(`Invalid quizz "${id}"`)
-  }
-
-  return { id, ...result.data }
+  return quizz
 }
 
-export const getQuizz = () => {
+export const getQuizz = (): QuizzWithId[] => {
   const isExists = fs.existsSync(getPath("quizz"))
 
   if (!isExists) {
@@ -120,20 +149,36 @@ export const getQuizz = () => {
   }
 
   try {
-    const files = fs
-      .readdirSync(getPath("quizz"))
-      .filter((file) => file.endsWith(".json"))
+    const files = listJsonFiles(getPath("quizz"))
 
     const quizz: QuizzWithId[] = files.flatMap((file) => {
-      const data = fs.readFileSync(getPath(`quizz/${file}`), "utf-8")
-      const id = file.replace(".json", "")
-      const result = quizzValidator.safeParse(JSON.parse(data))
+      const filePath = getPath(`quizz/${file}`)
+      const data = readJson(filePath)
+
+      if (!data) {
+        console.warn(`Invalid quizz config "${file}": unreadable`)
+
+        return []
+      }
+
+      const result = quizzValidator.safeParse(data)
 
       if (!result.success) {
         console.warn(`Invalid quizz config "${file}":`, result.error.issues)
 
         return []
       }
+
+      if (typeof data.id === "string") {
+        return [{ id: data.id, ...result.data }]
+      }
+
+      const id = nanoid()
+
+      fs.writeFileSync(
+        filePath,
+        JSON.stringify({ id, ...result.data }, null, 2),
+      )
 
       return [{ id, ...result.data }]
     })
@@ -153,25 +198,20 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
     throw new Error(result.error.issues[0].message)
   }
 
-  const oldPath = getSafePath("quizz", id)
+  const file = requireFileById("quizz", id, "Quizz")
 
-  if (!fs.existsSync(oldPath)) {
-    throw new Error(`Quizz "${id}" not found`)
-  }
-
-  fs.writeFileSync(oldPath, JSON.stringify(result.data, null, 2))
+  fs.writeFileSync(
+    join(getPath("quizz"), file),
+    JSON.stringify({ id, ...result.data }, null, 2),
+  )
 
   return { id }
 }
 
 export const deleteQuizz = (id: string): void => {
-  const filePath = getSafePath("quizz", id)
+  const file = requireFileById("quizz", id, "Quizz")
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Quizz "${id}" not found`)
-  }
-
-  fs.unlinkSync(filePath)
+  fs.unlinkSync(join(getPath("quizz"), file))
 }
 
 export const saveResult = (data: GameResult): void => {
@@ -183,7 +223,7 @@ export const saveResult = (data: GameResult): void => {
     }
 
     fs.writeFileSync(
-      getSafePath("results", data.id),
+      join(resultsPath, `${nanoid()}.json`),
       JSON.stringify(data, null, 2),
     )
 
@@ -201,15 +241,18 @@ export const getResultsMeta = (): GameResultMeta[] => {
   }
 
   const readMeta = (file: string): GameResultMeta | null => {
-    try {
-      const data = fs.readFileSync(getPath(`results/${file}`), "utf-8")
-      const result = JSON.parse(data) as GameResult
+    const data = readJson(join(resultsPath, file)) as GameResult | null
 
+    if (!data) {
+      return null
+    }
+
+    try {
       return {
-        id: result.id,
-        subject: result.subject,
-        date: result.date,
-        playerCount: result.players.length,
+        id: data.id,
+        subject: data.subject,
+        date: data.date,
+        playerCount: data.players.length,
       }
     } catch {
       return null
@@ -217,9 +260,7 @@ export const getResultsMeta = (): GameResultMeta[] => {
   }
 
   try {
-    return fs
-      .readdirSync(resultsPath)
-      .filter((file) => file.endsWith(".json"))
+    return listJsonFiles(resultsPath)
       .map(readMeta)
       .filter((meta): meta is GameResultMeta => meta !== null)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -229,23 +270,20 @@ export const getResultsMeta = (): GameResultMeta[] => {
 }
 
 export const getResultById = (id: string): GameResult => {
-  const filePath = getSafePath("results", id)
+  const file = requireFileById("results", id, "Result")
+  const data = readJson(join(getPath("results"), file))
 
-  if (!fs.existsSync(filePath)) {
+  if (!data) {
     throw new Error(`Result "${id}" not found`)
   }
 
-  return JSON.parse(fs.readFileSync(filePath, "utf-8")) as GameResult
+  return data as unknown as GameResult
 }
 
 export const deleteResult = (id: string): void => {
-  const filePath = getSafePath("results", id)
+  const file = requireFileById("results", id, "Result")
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Result "${id}" not found`)
-  }
-
-  fs.unlinkSync(filePath)
+  fs.unlinkSync(join(getPath("results"), file))
 }
 
 export const saveQuizz = (data: unknown): { id: string } => {
@@ -255,10 +293,13 @@ export const saveQuizz = (data: unknown): { id: string } => {
     throw new Error(result.error.issues[0].message)
   }
 
-  const id = normalizeFilename(result.data.subject)
-  const filePath = getSafePath("quizz", id)
+  const id = nanoid()
+  const fileName = normalizeFilename(result.data.subject)
 
-  fs.writeFileSync(filePath, JSON.stringify(result.data, null, 2))
+  fs.writeFileSync(
+    getPath(`quizz/${fileName}.json`),
+    JSON.stringify({ id, ...result.data }, null, 2),
+  )
 
   return { id }
 }
