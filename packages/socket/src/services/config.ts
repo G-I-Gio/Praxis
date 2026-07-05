@@ -7,7 +7,7 @@ import type {
 import { quizzValidator } from "@razzia/common/validators/quizz"
 import { normalizeFilename } from "@razzia/socket/utils/game"
 import fs from "fs"
-import { resolve } from "path"
+import { isAbsolute, relative, resolve } from "path"
 
 interface GameConfig {
   managerPassword: string
@@ -19,6 +19,26 @@ const getPath = (path = "") =>
   inContainerPath
     ? resolve(inContainerPath, path)
     : resolve(process.cwd(), "../../config", path)
+
+// Ids come from the network and are interpolated into file paths, so they must
+// be strictly validated to prevent path traversal (e.g. id = "../game").
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
+
+const getSafePath = (subDir: string, id: unknown): string => {
+  if (typeof id !== "string" || !SAFE_ID_PATTERN.test(id)) {
+    throw new Error(`Invalid id "${String(id)}"`)
+  }
+
+  const baseDir = getPath(subDir)
+  const target = resolve(baseDir, `${id}.json`)
+  const rel = relative(baseDir, target)
+
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    throw new Error(`Invalid id "${id}"`)
+  }
+
+  return target
+}
 
 export const initConfig = () => {
   const isConfigFolderExists = fs.existsSync(getPath())
@@ -76,7 +96,7 @@ export const getQuizzMeta = () =>
   getQuizz().map(({ id, subject }) => ({ id, subject }))
 
 export const getQuizzById = (id: string) => {
-  const filePath = getPath(`quizz/${id}.json`)
+  const filePath = getSafePath("quizz", id)
 
   if (!fs.existsSync(filePath)) {
     throw new Error(`Quizz "${id}" not found`)
@@ -133,7 +153,7 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
     throw new Error(result.error.issues[0].message)
   }
 
-  const oldPath = getPath(`quizz/${id}.json`)
+  const oldPath = getSafePath("quizz", id)
 
   if (!fs.existsSync(oldPath)) {
     throw new Error(`Quizz "${id}" not found`)
@@ -145,7 +165,7 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
 }
 
 export const deleteQuizz = (id: string): void => {
-  const filePath = getPath(`quizz/${id}.json`)
+  const filePath = getSafePath("quizz", id)
 
   if (!fs.existsSync(filePath)) {
     throw new Error(`Quizz "${id}" not found`)
@@ -163,7 +183,7 @@ export const saveResult = (data: GameResult): void => {
     }
 
     fs.writeFileSync(
-      getPath(`results/${data.id}.json`),
+      getSafePath("results", data.id),
       JSON.stringify(data, null, 2),
     )
 
@@ -209,7 +229,7 @@ export const getResultsMeta = (): GameResultMeta[] => {
 }
 
 export const getResultById = (id: string): GameResult => {
-  const filePath = getPath(`results/${id}.json`)
+  const filePath = getSafePath("results", id)
 
   if (!fs.existsSync(filePath)) {
     throw new Error(`Result "${id}" not found`)
@@ -219,7 +239,7 @@ export const getResultById = (id: string): GameResult => {
 }
 
 export const deleteResult = (id: string): void => {
-  const filePath = getPath(`results/${id}.json`)
+  const filePath = getSafePath("results", id)
 
   if (!fs.existsSync(filePath)) {
     throw new Error(`Result "${id}" not found`)
@@ -236,7 +256,7 @@ export const saveQuizz = (data: unknown): { id: string } => {
   }
 
   const id = normalizeFilename(result.data.subject)
-  const filePath = getPath(`quizz/${id}.json`)
+  const filePath = getSafePath("quizz", id)
 
   fs.writeFileSync(filePath, JSON.stringify(result.data, null, 2))
 
