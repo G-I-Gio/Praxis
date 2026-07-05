@@ -13,8 +13,8 @@ const ResultModalTable = () => {
 
   return (
     <table className="w-full text-sm">
-      <thead className="sticky top-0 shadow-sm">
-        <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase">
+      <thead className="sticky top-0">
+        <tr className="border-accent bg-muted text-muted-foreground border-b-2 text-left text-xs font-semibold tracking-wide uppercase">
           <th className="px-5 py-2.5">{t("manager:result.table.player")}</th>
           <th className="px-4 py-2.5">{t("manager:result.table.answered")}</th>
           <th className="px-4 py-2.5">
@@ -25,48 +25,54 @@ const ResultModalTable = () => {
           </th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-100">
+      <tbody className="divide-muted divide-y-2">
         {questionResult.playerAnswers.map((pa, i) => {
+          const hasAnswer = pa.answerIds !== null && pa.answerIds.length > 0
           const isCorrect =
-            pa.answerId !== null &&
-            questionResult.solutions.includes(pa.answerId)
-          const answerLabel =
-            pa.answerId !== null ? ANSWERS_LABELS[pa.answerId % 4] : null
+            pa.answerIds?.some((id) => questionResult.solutions.includes(id)) ??
+            false
 
           return (
-            <tr key={i} className="hover:bg-gray-50">
+            <tr key={i}>
               <td className="px-5 py-2.5 font-medium">{pa.playerName}</td>
               <td className="px-4 py-2.5">
-                {pa.answerId !== null && answerLabel ? (
-                  <span
-                    className={clsx(
-                      "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
-                      ANSWERS_COLORS[pa.answerId % 4],
-                    )}
-                  >
-                    <span className="font-bold">{answerLabel}</span>
-                    <span className="max-w-30 truncate">
-                      {questionResult.answers[pa.answerId]}
-                    </span>
-                  </span>
+                {hasAnswer ? (
+                  <div className="flex flex-wrap gap-1">
+                    {pa.answerIds?.map((id) => (
+                      <span
+                        key={id}
+                        className={clsx(
+                          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
+                          ANSWERS_COLORS[id % 4],
+                        )}
+                      >
+                        <span className="font-bold">
+                          {ANSWERS_LABELS[id % 4]}
+                        </span>
+                        <span className="max-w-30 truncate">
+                          {questionResult.answers[id]}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
                 ) : (
-                  <span className="text-xs text-gray-400">—</span>
+                  <span className="text-muted-foreground text-xs">-</span>
                 )}
               </td>
               <td className="px-4 py-2.5">
                 {isCorrect ? (
                   <span className="flex items-center gap-1 text-green-600">
-                    <Check className="size-3.5" />{" "}
+                    <Check className="size-4 stroke-4" />{" "}
                     {t("manager:result.table.correct")}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-red-500">
-                    <X className="size-3.5" />{" "}
+                    <X className="size-4 stroke-4" />{" "}
                     {t("manager:result.table.incorrect")}
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2.5 text-right font-semibold text-gray-700">
+              <td className="text-foreground px-4 py-2.5 text-right font-semibold">
                 {getPlayerPoints(pa.playerName)}
               </td>
             </tr>

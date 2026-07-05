@@ -8,6 +8,8 @@
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",
   "pinLabel": "PINコード",
+  "reconnect": "再接続",
+  "reconnectTitle": "ゲームに参加していました",
   "playersJoined": "参加プレイヤー数: ",
   "questionPrefix": "問題 #",
   "rank": {
@@ -23,5 +25,6 @@
   "usernamePlaceholder": "ユーザー名を入力",
   "waitingForAnswers": "プレイヤーの回答を待っています",
   "waitingForPlayers": "プレイヤーを待っています",
-  "wrong": "残念！"
+  "wrong": "残念！",
+  "confirm": "確認"
 }

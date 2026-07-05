@@ -4,25 +4,21 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "node esbuild.config.js",
-    "start": "node dist/index.cjs",
-    "types": "tsc --noEmit",
-    "format": "prettier --check . --log-level warn",
-    "format:fix": "prettier --write . --log-level warn"
+    "start": "node dist/index.cjs"
   },
   "license": "ISC",
   "dependencies": {
     "@razzia/common": "workspace:*",
     "dayjs": "^1.11.21",
-    "nanoid": "^5.1.11",
+    "nanoid": "^5.1.16",
     "socket.io": "^4.8.3",
     "typescript": "^6.0.3",
-    "uuid": "^14.0.0",
+    "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.0.1",
     "esbuild": "^0.28.1",
-    "prettier": "^3.8.3",
     "tsx": "^4.22.4"
   }
 }

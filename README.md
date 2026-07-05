@@ -25,7 +25,7 @@ Choose one of the following deployment methods:
 
 ### Without Docker
 
-- Node.js : version 22 or higher
+- Node.js : version 24 or higher
 - PNPM : version 10.16 or higher (learn more [here](https://pnpm.io/))
 
 ### With Docker
@@ -53,6 +53,15 @@ docker run -d \
   -p 3000:3000 \
   -v ./config:/app/config \
   ralex91/razzia:latest
+```
+
+The image is also published on the GitHub Container Registry, if you prefer using it instead of Docker Hub:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v ./config:/app/config \
+  ghcr.io/ralex91/razzia:latest
 ```
 
 **Configuration Volume:**
@@ -85,20 +94,16 @@ pnpm install
 
 ```bash
 # Development mode
-pnpm run dev
+pnpm dev
 
 # Production mode
-pnpm run build
+pnpm build
 pnpm start
 ```
 
 ## ⚙️ Configuration
 
-The configuration is split into two main parts:
-
-### 1. Game Configuration (`config/game.json`)
-
-Main game settings:
+**⚠️ Required:** set a manager password in `config/game.json` before going live.
 
 ```json
 {
@@ -106,66 +111,17 @@ Main game settings:
 }
 ```
 
-Options:
+`managerPassword` **must be changed** from the default `"PASSWORD"` value, otherwise manager access is blocked.
 
-- `managerPassword`: The master password for accessing the manager interface. **Must be changed from the default `"PASSWORD"` value**, otherwise manager access is blocked.
+## 📚 Documentation
 
-### 2. Quiz Configuration (`config/quizz/*.json`)
+- [Configuration](docs/configuration.md): manager password, via the `config` folder.
+- [Quiz](docs/quiz.md): creating and structuring quizzes.
+- [Branding](docs/branding.md): optional custom theming.
+- [Reverse Proxy](docs/reverse-proxy.md): running behind Traefik, Nginx, Caddy, or another reverse proxy.
+- [WebSocket Protocol](docs/websocket-protocol.md): build a custom client (e.g. an ESP32 physical buzzer).
 
-Quizzes can be created in two ways:
-
-- **Via the Quiz Editor** — use the built-in editor available in the manager dashboard (recommended)
-- **Via JSON files** — manually create files in the `config/quizz/` directory
-
-You can have multiple quiz files and select which one to use when starting a game.
-
-Example quiz configuration (`config/quizz/example.json`):
-
-```json
-{
-  "subject": "Example Quiz",
-  "questions": [
-    {
-      "question": "What is the correct answer?",
-      "answers": ["No", "Yes", "No", "No"],
-      "solutions": [1],
-      "cooldown": 5,
-      "time": 15
-    },
-    {
-      "question": "Which of these are primary colors?",
-      "answers": ["Red", "Green", "Blue", "Yellow"],
-      "solutions": [0, 2, 3],
-      "cooldown": 5,
-      "time": 20
-    },
-    {
-      "question": "What is the correct answer with an image?",
-      "answers": ["No", "Yes", "No", "No"],
-      "media": {
-        "type": "image",
-        "url": "https://placehold.co/600x400.png"
-      },
-      "solutions": [1],
-      "cooldown": 5,
-      "time": 20
-    }
-  ]
-}
-```
-
-Quiz Options:
-
-- `subject`: Title/topic of the quiz
-- `questions`: Array of question objects containing:
-  - `question`: The question text
-  - `answers`: Array of possible answers (2-4 options)
-  - `media`: Optional media object displayed with the question:
-    - `type`: `"image"`, `"video"`, or `"audio"`
-    - `url`: URL of the media
-  - `solutions`: Array of correct answer indices (0-based). Use multiple indices for multi-answer questions
-  - `cooldown`: Time in seconds before answers are revealed (3-15)
-  - `time`: Time in seconds allowed to answer (5-120)
+Full index in [docs/](docs/README.md).
 
 ## 🎮 How to Play
 
@@ -183,4 +139,4 @@ For bug reports or feature requests, please [create an issue](https://github.com
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&legend=bottom-right)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&logscale=&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&logscale=&legend=bottom-right)

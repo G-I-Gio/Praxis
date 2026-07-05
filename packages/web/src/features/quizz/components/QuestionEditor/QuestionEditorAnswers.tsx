@@ -2,14 +2,18 @@ import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
 } from "@razzia/web/features/game/utils/constants"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
-import { Check, Minus, Plus } from "lucide-react"
+import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorAnswers = () => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
+
+  const questionType = currentQuestion.type
+  const { SolutionPicker } = QUESTION_REGISTRY[questionType]
 
   const updateAnswer = (index: number, value: string) => {
     const next = [...currentQuestion.answers]
@@ -40,23 +44,10 @@ const QuestionEditorAnswers = () => {
     })
   }
 
-  const toggleSolution = (index: number) => {
-    const current = currentQuestion.solutions
-
-    if (current.includes(index)) {
-      const next = current.filter((s) => s !== index)
-      updateQuestion(currentIndex, {
-        solutions: next.length > 0 ? next : [index],
-      })
-    } else {
-      updateQuestion(currentIndex, { solutions: [...current, index] })
-    }
-  }
-
   return (
     <div className="z-10 flex flex-col gap-3">
       <div className="flex items-center justify-between px-1">
-        <div className="rounded-lg bg-white px-2 py-1 text-sm font-semibold text-gray-500">
+        <div className="text-muted-foreground bg-background rounded-lg px-2 py-1 text-sm font-semibold">
           {currentQuestion.answers.length}
           {t("quizz:answersCountSuffix")}
         </div>
@@ -64,14 +55,14 @@ const QuestionEditorAnswers = () => {
           <button
             onClick={removeAnswer}
             disabled={currentQuestion.answers.length <= 2}
-            className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
+            className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
           >
             <Minus className="size-4" />
           </button>
           <button
             onClick={addAnswer}
             disabled={currentQuestion.answers.length >= 4}
-            className="flex size-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40"
+            className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
           >
             <Plus className="size-4" />
           </button>
@@ -100,18 +91,7 @@ const QuestionEditorAnswers = () => {
                   value={answer}
                   onChange={(e) => updateAnswer(i, e.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => toggleSolution(i)}
-                  className={clsx(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                    isSelected
-                      ? "border-white bg-white text-green-600"
-                      : "border-white/60 bg-transparent",
-                  )}
-                >
-                  {isSelected && <Check className="size-4 stroke-5" />}
-                </button>
+                <SolutionPicker index={i} isSelected={isSelected} />
               </div>
             </div>
           )

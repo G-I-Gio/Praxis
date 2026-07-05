@@ -43,25 +43,27 @@ const ConfigSelectQuizz = () => {
         {quizzList.map((quizz) => (
           <button
             key={quizz.id}
-            className="flex w-full items-center justify-between rounded-md p-3 outline outline-gray-300"
+            className="border-accent flex h-12 w-full items-center justify-between rounded-md border-2 p-3"
             onClick={handleSelect(quizz.id)}
           >
-            {quizz.subject}
+            <p className="text-foreground truncate font-medium">
+              {quizz.subject}
+            </p>
 
             <div
               className={clsx(
-                "size-5 rounded p-0.5 outline outline-offset-3 outline-gray-300",
+                "bg-muted size-6 rounded",
                 selected === quizz.id && "bg-primary border-primary/80",
               )}
             >
               {selected === quizz.id && (
-                <Check className="size-full stroke-4 text-white" />
+                <Check className="size-full stroke-4 p-1 text-white" />
               )}
             </div>
           </button>
         ))}
         {!quizzList.length && (
-          <div className="my-8 text-center text-gray-500">
+          <div className="text-muted-foreground my-8 text-center">
             <p>{t("manager:quizz.notFound")}</p>
             <p className="text-sm">{t("manager:quizz.pleaseCreate")}</p>
           </div>

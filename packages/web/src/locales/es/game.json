@@ -8,6 +8,8 @@
   "joinInstruction": "Únete al juego en",
   "leaderboard": "Clasificación",
   "pinLabel": "Código PIN",
+  "reconnect": "Reconectar",
+  "reconnectTitle": "Estabas en una partida",
   "playersJoined": "Jugadores conectados: ",
   "questionPrefix": "Pregunta #",
   "rank": {
@@ -23,5 +25,6 @@
   "usernamePlaceholder": "Nombre de usuario aquí",
   "waitingForAnswers": "Esperando que los jugadores respondan",
   "waitingForPlayers": "Esperando jugadores",
-  "wrong": "Mala suerte"
+  "wrong": "Mala suerte",
+  "confirm": "Confirmar"
 }
