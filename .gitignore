@@ -1,6 +1,24 @@
-/node_modules
+# Dépendances
+node_modules
+.pnpm-store
+
+# Config locale (branding interne, quizz, mot de passe)
 /config
+
+# Secrets
 .env
 .secrets
+
+# Inutile pour le build Docker
+.github
+.vscode
+docs
+*.md
+README.md
+LICENSE
+compose.yml
+oxlint.config.ts
+.prettierignore
+.prettierrc.json
+event.json
 release.json
-web2

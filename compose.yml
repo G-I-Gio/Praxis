@@ -1,6 +1,6 @@
 services:
-  razzia:
-    image: ralex91/razzia:latest
+  praxis:
+    image: praxis:latest
     ports:
       - "3000:3000"
     volumes:

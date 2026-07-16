@@ -1,6 +1,6 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
-import { SFX } from "@razzia/web/features/game/utils/constants"
+import { getSFX } from "@razzia/web/features/game/utils/constants"
 import { useEffect } from "react"
 import useSound from "use-sound"
 
@@ -9,6 +9,7 @@ interface Props {
 }
 
 const Question = ({ data: { question, media, cooldown } }: Props) => {
+  const SFX = getSFX()
   const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import Room from "@razzia/web/features/game/components/states/Room"
 import Start from "@razzia/web/features/game/components/states/Start"
 import Wait from "@razzia/web/features/game/components/states/Wait"
 
+import { getBranding } from "@razzia/web/branding"
 import { STATUS } from "@razzia/common/types/game/status"
 
 export const ANSWERS_COLORS = [
@@ -51,21 +52,25 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
   [STATUS.FINISHED]: Podium,
 }
 
-export const SFX = {
-  ANSWERS: {
-    MUSIC: "/sounds/answersMusic.mp3",
-    SOUND: "/sounds/answersSound.mp3",
-  },
-  PODIUM: {
-    THREE: "/sounds/three.mp3",
-    SECOND: "/sounds/second.mp3",
-    FIRST: "/sounds/first.mp3",
-    SNEAR_ROOL: "/sounds/snearRoll.mp3",
-  },
-  RESULTS_SOUND: "/sounds/results.mp3",
-  SHOW_SOUND: "/sounds/show.mp3",
-  BOUMP_SOUND: "/sounds/boump.mp3",
-} as const
+// Appelé au moment du rendu, après que loadBranding() ait été exécuté
+export const getSFX = () => {
+  const audio = getBranding()?.audio ?? {}
+  return {
+    ANSWERS: {
+      MUSIC: audio.answersMusic ?? "/sounds/answersMusic.mp3",
+      SOUND: audio.answersSound ?? "/sounds/answersSound.mp3",
+    },
+    PODIUM: {
+      THREE: audio.podiumThree ?? "/sounds/three.mp3",
+      SECOND: audio.podiumSecond ?? "/sounds/second.mp3",
+      FIRST: audio.podiumFirst ?? "/sounds/first.mp3",
+      SNEAR_ROOL: audio.podiumSnearRoll ?? "/sounds/snearRoll.mp3",
+    },
+    RESULTS_SOUND: audio.resultsSound ?? "/sounds/results.mp3",
+    SHOW_SOUND: audio.showSound ?? "/sounds/show.mp3",
+    BOUMP_SOUND: audio.boumpSound ?? "/sounds/boump.mp3",
+  }
+}
 
 export const MANAGER_SKIP_EVENTS = {
   [STATUS.SHOW_ROOM]: EVENTS.MANAGER.START_GAME,

@@ -3,7 +3,7 @@ import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
-  SFX,
+  getSFX,
 } from "@razzia/web/features/game/utils/constants"
 import { calculatePercentages } from "@razzia/web/features/game/utils/score"
 import clsx from "clsx"
@@ -17,6 +17,7 @@ interface Props {
 const Responses = ({
   data: { question, answers, responses, solutions },
 }: Props) => {
+  const SFX = getSFX()
   const [percentages, setPercentages] = useState<Record<string, string>>({})
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
 

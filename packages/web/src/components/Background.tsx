@@ -6,7 +6,7 @@ import type { PropsWithChildren } from "react"
 const Background = ({ children }: PropsWithChildren) => {
   const branding = getBranding()
   const logo = branding?.logo ?? defaultLogo
-  const appName = branding?.appName ?? "Razzia"
+  const appName = branding?.appName ?? "Praxis"
 
   return (
     <section className="relative flex min-h-dvh flex-col items-center justify-center">
@@ -23,16 +23,10 @@ const Background = ({ children }: PropsWithChildren) => {
       />
       {children}
 
-      <a
-        href="https://github.com/Ralex91/Razzia"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 text-sm font-semibold text-white/50 transition-colors hover:text-white/80"
-      >
-        <GithubIcon size={14} />
+      <span className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 text-sm font-semibold text-white/50">
         {/* oxlint-disable-next-line no-undef */}
-        Razzia - v{__APP_VERSION__}
-      </a>
+        Praxis - v{__APP_VERSION__}
+      </span>
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
-import { SFX } from "@razzia/web/features/game/utils/constants"
+import { getSFX } from "@razzia/web/features/game/utils/constants"
 import useScreenSize from "@razzia/web/hooks/useScreenSize"
 import clsx from "clsx"
 import { useEffect, useState } from "react"
@@ -11,6 +11,7 @@ interface Props {
 }
 
 const usePodiumAnimation = (topLength: number) => {
+  const SFX = getSFX()
   const [apparition, setApparition] = useState(0)
 
   const [sfxtThree] = useSound(SFX.PODIUM.THREE, { volume: 0.1 })

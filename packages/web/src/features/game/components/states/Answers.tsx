@@ -7,7 +7,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
-import { SFX } from "@razzia/web/features/game/utils/constants"
+import { getSFX } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -20,6 +20,7 @@ interface Props {
 const Answers = ({
   data: { question, answers, media, time, totalPlayer, questionType, options },
 }: Props) => {
+  const SFX = getSFX()
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
 

@@ -9,6 +9,19 @@ const brandingSchema = z.object({
   logo: z.string().optional(),
   favicon: z.string().optional(),
   background: z.string().optional(),
+  audio: z
+    .object({
+      answersMusic: z.string().optional(),
+      answersSound: z.string().optional(),
+      resultsSound: z.string().optional(),
+      showSound: z.string().optional(),
+      boumpSound: z.string().optional(),
+      podiumThree: z.string().optional(),
+      podiumSecond: z.string().optional(),
+      podiumFirst: z.string().optional(),
+      podiumSnearRoll: z.string().optional(),
+    })
+    .optional(),
 })
 
 export type BrandingTheme = z.infer<typeof brandingSchema>

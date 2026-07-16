@@ -54,7 +54,7 @@ const serveBranding = (
 
 /** Serves the optional `config/branding` folder at `/branding/` in `vite dev` and `vite preview` (nginx does this in prod). */
 const brandingServer = (): Plugin => ({
-  name: "razzia-branding-server",
+  name: "praxis-branding-server",
   configureServer(server) {
     server.middlewares.use(serveBranding)
   },
