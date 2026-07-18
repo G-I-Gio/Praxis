@@ -16,7 +16,7 @@ export class PlayerManager {
     this.getManagerId = getManagerId
   }
 
-  join(socket: Socket, username: string): void {
+  join(socket: Socket, username: string, avatar?: string): void {
     const clientId = getClientId(socket)
 
     if (this.findByClientId(clientId)) {
@@ -45,12 +45,27 @@ export class PlayerManager {
       username,
       points: 0,
       streak: 0,
+      avatar,
     }
 
     this.players.push(player)
     this.io.to(this.getManagerId()).emit(EVENTS.MANAGER.NEW_PLAYER, player)
     this.io.to(this.gameId).emit(EVENTS.GAME.TOTAL_PLAYERS, this.players.length)
+    // Envoie la liste complète au nouveau joueur (pour afficher ceux déjà présents)
+    socket.emit(EVENTS.GAME.PLAYER_LIST, this.players.map((p) => ({ id: p.id, username: p.username, avatar: p.avatar })))
+    // Broadcast le nouveau joueur à tous les autres joueurs déjà dans la room
+    socket.to(this.gameId).emit(EVENTS.GAME.PLAYER_JOINED, { id: player.id, username: player.username, avatar: player.avatar })
     socket.emit(EVENTS.GAME.SUCCESS_JOIN, this.gameId)
+  }
+
+  updateAvatar(socket: Socket, avatar: string | undefined): void {
+    const player = this.findById(socket.id)
+    if (!player) return
+    player.avatar = avatar
+    // Notifier le manager
+    this.io.to(this.getManagerId()).emit(EVENTS.MANAGER.PLAYER_AVATAR_UPDATED, { playerId: player.id, avatar })
+    // Notifier les autres joueurs
+    socket.to(this.gameId).emit(EVENTS.GAME.PLAYER_JOINED, { id: player.id, username: player.username, avatar: player.avatar })
   }
 
   kick(socket: Socket, playerId: string): boolean {

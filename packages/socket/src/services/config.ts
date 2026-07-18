@@ -98,6 +98,26 @@ export const initConfig = () => {
     )
   }
 
+  const isAdminConfigExists = fs.existsSync(getPath("admin.json"))
+
+  if (!isAdminConfigExists) {
+    fs.writeFileSync(
+      getPath("admin.json"),
+      JSON.stringify(
+        {
+          username: "admin",
+          passwordHash: "",
+          _notice: "Générez un hash avec : pnpm hash-password <mot_de_passe>",
+        },
+        null,
+        2,
+      ),
+    )
+    console.warn(
+      "⚠️  config/admin.json créé. Configurez le mot de passe admin avec : pnpm hash-password <mot_de_passe>",
+    )
+  }
+
   const isQuizzExists = fs.existsSync(getPath("quizz"))
 
   if (!isQuizzExists) {

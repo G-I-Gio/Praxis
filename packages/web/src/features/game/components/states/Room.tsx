@@ -1,4 +1,5 @@
 import * as AlertDialog from "@radix-ui/react-alert-dialog"
+import Avatar from "@razzia/web/features/game/components/Avatar"
 import { EVENTS } from "@razzia/common/constants"
 import type { Player } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
@@ -32,6 +33,10 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
 
   useEvent(EVENTS.MANAGER.NEW_PLAYER, (player) => {
     setPlayerList([...playerList, player])
+  })
+
+  useEvent(EVENTS.MANAGER.PLAYER_AVATAR_UPDATED, ({ playerId, avatar }: { playerId: string; avatar?: string }) => {
+    setPlayerList((prev) => prev.map((p) => p.id === playerId ? { ...p, avatar } : p))
   })
 
   useEvent(EVENTS.MANAGER.REMOVE_PLAYER, (playerId) => {
@@ -131,9 +136,10 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
         {playerList.map((player) => (
           <div
             key={player.id}
-            className="bg-primary rounded-xl px-4 py-3 font-bold text-white"
+            className="bg-primary flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-white"
             onClick={handleKick(player.id)}
           >
+            <Avatar username={player.username} avatar={player.avatar} size="sm" />
             <span className="cursor-pointer text-3xl drop-shadow-sm hover:line-through hover:decoration-3">
               {player.username}
             </span>

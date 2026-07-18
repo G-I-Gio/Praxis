@@ -280,9 +280,17 @@ export class RoundManager {
       text: "game:waitingForAnswers",
     })
 
+    const answeredPlayer = this.opts.players.findById(socket.id)
+    // Broadcast le count au manager (comportement existant)
     socket
       .to(this.opts.gameId)
       .emit(EVENTS.GAME.PLAYER_ANSWER, this.playersAnswers.length)
+    // Broadcast les infos du joueur ayant répondu à toute la room
+    this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.PLAYER_ANSWERED, {
+      id: socket.id,
+      username: answeredPlayer?.username ?? "",
+      avatar: answeredPlayer?.avatar,
+    })
     this.opts.players.broadcastCount()
 
     if (this.playersAnswers.length === this.opts.players.count()) {

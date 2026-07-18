@@ -129,8 +129,16 @@ class Game {
 
   // Player actions
 
-  join(socket: Socket, username: string) {
-    this.playerManager.join(socket, username)
+  getPlayers() {
+    return this.playerManager.getAll()
+  }
+
+  updateAvatar(socket: Socket, avatar: string | undefined) {
+    this.playerManager.updateAvatar(socket, avatar)
+  }
+
+  join(socket: Socket, username: string, avatar?: string) {
+    this.playerManager.join(socket, username, avatar)
   }
 
   kickPlayer(socket: Socket, playerId: string) {

@@ -10,6 +10,9 @@ export const EVENTS = {
     RESET: "game:reset",
     UPDATE_QUESTION: "game:updateQuestion",
     PLAYER_ANSWER: "game:playerAnswer",
+    PLAYER_JOINED: "game:playerJoined",
+    PLAYER_LIST: "game:playerList",
+    PLAYER_ANSWERED: "game:playerAnswered",
     CREATE: "game:create",
   },
   PLAYER: {
@@ -22,6 +25,8 @@ export const EVENTS = {
     SELECTED_ANSWER: "player:selectedAnswer",
     CHECK_PIN: "player:checkPin",
     CHECK_PIN_RESULT: "player:checkPinResult",
+    UPDATE_AVATAR: "player:updateAvatar",
+    REQUEST_PLAYER_LIST: "player:requestPlayerList",
   },
   MANAGER: {
     SUCCESS_RECONNECT: "manager:successReconnect",
@@ -29,6 +34,7 @@ export const EVENTS = {
     GAME_CREATED: "manager:gameCreated",
     STATUS_UPDATE: "manager:statusUpdate",
     NEW_PLAYER: "manager:newPlayer",
+    PLAYER_AVATAR_UPDATED: "manager:playerAvatarUpdated",
     REMOVE_PLAYER: "manager:removePlayer",
     ERROR_MESSAGE: "manager:errorMessage",
     PLAYER_KICKED: "manager:playerKicked",

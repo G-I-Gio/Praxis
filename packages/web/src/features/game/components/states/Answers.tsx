@@ -2,6 +2,7 @@ import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import Avatar from "@razzia/web/features/game/components/Avatar"
 import {
   useEvent,
   useSocket,
@@ -22,7 +23,7 @@ const Answers = ({
 }: Props) => {
   const SFX = getSFX()
   const { socket } = useSocket()
-  const { player, gameId } = usePlayerStore()
+  const { player, gameId, answeredPlayers, addAnsweredPlayer } = usePlayerStore()
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
@@ -79,6 +80,10 @@ const Answers = ({
     sfxPop()
   })
 
+  useEvent(EVENTS.GAME.PLAYER_ANSWERED, (p) => {
+    addAnsweredPlayer(p)
+  })
+
   const { AnswerComponent } = QUESTION_REGISTRY[questionType]
 
   return (
@@ -101,13 +106,15 @@ const Answers = ({
               <span>{cooldown}</span>
             </div>
           )}
-          <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
-            <span className="translate-y-1 text-sm">
-              {t("game:hud.answers")}
-            </span>
-            <span>
+          <div className="flex flex-col items-center rounded-lg bg-black/40 px-3 py-2">
+            <span className="mb-1 text-sm font-bold">
               {totalAnswer}/{totalPlayer}
             </span>
+            <div className="flex flex-wrap gap-1">
+              {answeredPlayers.map((p) => (
+                <Avatar key={p.id} username={p.username} avatar={p.avatar} size="sm" />
+              ))}
+            </div>
           </div>
         </div>
 

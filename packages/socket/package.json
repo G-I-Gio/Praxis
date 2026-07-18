@@ -4,11 +4,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "node esbuild.config.js",
-    "start": "node dist/index.cjs"
+    "start": "node dist/index.cjs",
+    "hash-password": "tsx src/scripts/hash-password.ts"
   },
   "license": "ISC",
   "dependencies": {
     "@razzia/common": "workspace:*",
+    "@types/bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.3",
     "dayjs": "^1.11.21",
     "nanoid": "^5.1.16",
     "socket.io": "^4.8.3",

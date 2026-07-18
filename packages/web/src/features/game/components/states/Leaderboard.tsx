@@ -1,5 +1,6 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import Fire from "@razzia/web/features/game/components/icons/Fire"
+import Avatar from "@razzia/web/features/game/components/Avatar"
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -93,6 +94,7 @@ const Leaderboard = ({ data: { oldLeaderboard, leaderboard } }: Props) => {
               className="bg-primary flex w-full justify-between rounded-xl p-3 text-3xl font-bold text-white"
             >
               <span className="flex items-center gap-2 drop-shadow-md">
+                <Avatar username={username} avatar={leaderboard.find((p) => p.id === id)?.avatar} size="sm" />
                 {username}
                 <StreakBadge streak={streak} />
               </span>

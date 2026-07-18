@@ -120,7 +120,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   })
 
   socket.on(EVENTS.PLAYER.LOGIN, ({ gameId, data }) =>
-    withGame(gameId, socket, (game) => game.join(socket, data.username)),
+    withGame(gameId, socket, (game) => game.join(socket, data.username, data.avatar)),
   )
 
   socket.on(EVENTS.MANAGER.KICK_PLAYER, ({ gameId, playerId }) =>
@@ -129,6 +129,19 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
   socket.on(EVENTS.MANAGER.START_GAME, ({ gameId }) =>
     withGame(gameId, socket, (game) => game.start(socket)),
+  )
+
+  socket.on(EVENTS.PLAYER.REQUEST_PLAYER_LIST, ({ gameId }) =>
+    withGame(gameId, socket, (game) => {
+      socket.emit(
+        EVENTS.GAME.PLAYER_LIST,
+        game.getPlayers().map((p) => ({ id: p.id, username: p.username, avatar: p.avatar })),
+      )
+    }),
+  )
+
+  socket.on(EVENTS.PLAYER.UPDATE_AVATAR, ({ gameId, avatar }) =>
+    withGame(gameId, socket, (game) => game.updateAvatar(socket, avatar)),
   )
 
   socket.on(EVENTS.PLAYER.SELECTED_ANSWER, ({ gameId, data }) =>

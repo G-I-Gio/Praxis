@@ -21,6 +21,7 @@ export interface Player {
   username: string
   points: number
   streak: number
+  avatar?: string
 }
 
 export interface Answer {

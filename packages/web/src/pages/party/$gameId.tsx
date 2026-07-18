@@ -12,6 +12,7 @@ import {
   isKeyOf,
 } from "@razzia/web/features/game/utils/constants"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
+import { useEffect } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
@@ -19,9 +20,20 @@ const PlayerGamePage = () => {
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })
-  const { status, setPlayer, setGameId, setStatus, reset } = usePlayerStore()
+  const {
+    status, setPlayer, setGameId, setStatus, reset,
+    setPlayers, addOrUpdatePlayer,
+    setAnsweredPlayers, addAnsweredPlayer,
+  } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
+
+  // Demander la liste des joueurs dès le montage du composant
+  useEffect(() => {
+    if (gameIdParam) {
+      socket.emit(EVENTS.PLAYER.REQUEST_PLAYER_LIST, { gameId: gameIdParam })
+    }
+  }, [gameIdParam, socket])
 
   useEvent("connect", () => {
     if (gameIdParam) {
@@ -29,24 +41,21 @@ const PlayerGamePage = () => {
     }
   })
 
-  useEvent(
-    EVENTS.PLAYER.SUCCESS_RECONNECT,
-    ({
-      gameId: reconnectGameId,
-      status: reconnectStatus,
-      player,
-      currentQuestion,
-    }) => {
-      setGameId(reconnectGameId)
-      setStatus(reconnectStatus.name, reconnectStatus.data)
-      setPlayer(player)
-      setQuestionStates(currentQuestion)
-    },
-  )
+  useEvent(EVENTS.PLAYER.SUCCESS_RECONNECT, ({
+    gameId: reconnectGameId, status: reconnectStatus, player, currentQuestion,
+  }) => {
+    setGameId(reconnectGameId)
+    setStatus(reconnectStatus.name, reconnectStatus.data)
+    setPlayer(player)
+    setQuestionStates(currentQuestion)
+  })
 
   useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS) {
       setStatus(name, data)
+      if (name === "SELECT_ANSWER") {
+        setAnsweredPlayers([])
+      }
     }
   })
 
@@ -58,18 +67,26 @@ const PlayerGamePage = () => {
     toast.error(t(message))
   })
 
-  if (!gameIdParam) {
-    return null
-  }
+  useEvent(EVENTS.GAME.PLAYER_LIST, (list) => {
+    setPlayers(list)
+  })
+
+  useEvent(EVENTS.GAME.PLAYER_JOINED, (player) => {
+    addOrUpdatePlayer(player)
+  })
+
+  useEvent(EVENTS.GAME.PLAYER_ANSWERED, (player) => {
+    addAnsweredPlayer(player)
+  })
+
+  if (!gameIdParam) return null
 
   const CurrentComponent =
     status && isKeyOf(GAME_STATE_COMPONENTS, status.name)
       ? GAME_STATE_COMPONENTS[status.name]
       : null
 
-  if (!status) {
-    return null
-  }
+  if (!status) return null
 
   return (
     <GameWrapper statusName={status.name}>

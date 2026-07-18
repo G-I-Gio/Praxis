@@ -2,6 +2,7 @@ import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import { getSFX } from "@razzia/web/features/game/utils/constants"
 import useScreenSize from "@razzia/web/hooks/useScreenSize"
 import clsx from "clsx"
+import Avatar from "@razzia/web/features/game/components/Avatar"
 import { useEffect, useState } from "react"
 import ReactConfetti from "react-confetti"
 import useSound from "use-sound"
@@ -132,16 +133,17 @@ const Podium = ({ data: { subject, top } }: Props) => {
                 { "translate-y-0! opacity-100": apparition >= 2 },
               )}
             >
-              <p
-                className={clsx(
-                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
-                  {
-                    "anim-balanced": apparition >= 4,
-                  },
-                )}
-              >
-                {top[1].username}
-              </p>
+              <div className="flex flex-col items-center gap-1">
+                <Avatar username={top[1].username} avatar={top[1].avatar} size="lg" />
+                <p
+                  className={clsx(
+                    "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
+                    { "anim-balanced": apparition >= 4 },
+                  )}
+                >
+                  {top[1].username}
+                </p>
+              </div>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={2} />
                 <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
@@ -162,14 +164,17 @@ const Podium = ({ data: { subject, top } }: Props) => {
               },
             )}
           >
-            <p
-              className={clsx(
-                "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white opacity-0 drop-shadow-lg md:text-4xl",
-                { "anim-balanced opacity-100": apparition >= 4 },
-              )}
-            >
-              {top[0].username}
-            </p>
+            <div className="flex flex-col items-center gap-1">
+              <Avatar username={top[0].username} avatar={top[0].avatar} size="lg" />
+              <p
+                className={clsx(
+                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white opacity-0 drop-shadow-lg md:text-4xl",
+                  { "anim-balanced opacity-100": apparition >= 4 },
+                )}
+              >
+                {top[0].username}
+              </p>
+            </div>
             <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
               <Medal rank={1} />
               <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
@@ -187,16 +192,17 @@ const Podium = ({ data: { subject, top } }: Props) => {
                 },
               )}
             >
-              <p
-                className={clsx(
-                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
-                  {
-                    "anim-balanced": apparition >= 4,
-                  },
-                )}
-              >
-                {top[2].username}
-              </p>
+              <div className="flex flex-col items-center gap-1">
+                <Avatar username={top[2].username} avatar={top[2].avatar} size="lg" />
+                <p
+                  className={clsx(
+                    "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
+                    { "anim-balanced": apparition >= 4 },
+                  )}
+                >
+                  {top[2].username}
+                </p>
+              </div>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={3} />
 
