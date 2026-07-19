@@ -73,5 +73,21 @@ export const useQuizApi = () => {
     URL.revokeObjectURL(url)
   }, [])
 
-  return { quizzes, loading, error, reload, deleteQuiz, importQuiz, exportQuiz }
+  const setQuizVisibility = useCallback(
+    async (
+      id: string,
+      visibility: "private" | "public" | "shared",
+      sharedWith: string[] = [],
+    ) => {
+      await apiFetch(`/api/quizzes/${id}/visibility`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility, shared_with: sharedWith }),
+      })
+      reload()
+    },
+    [reload],
+  )
+
+  return { quizzes, loading, error, reload, deleteQuiz, importQuiz, exportQuiz, setQuizVisibility }
 }

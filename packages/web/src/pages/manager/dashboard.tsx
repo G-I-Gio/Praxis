@@ -4,6 +4,8 @@ import Background from "@razzia/web/components/Background"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
+import ChangePasswordModal from "@razzia/web/features/dashboard/ChangePasswordModal"
+import PasswordSuccessModal from "@razzia/web/features/dashboard/PasswordSuccessModal"
 import {
   useEvent,
   useSocket,
@@ -20,7 +22,7 @@ import { useResultsApi } from "@razzia/web/features/dashboard/useResultsApi"
 import { useManagersApi } from "@razzia/web/features/dashboard/useManagersApi"
 import { useBrandingApi } from "@razzia/web/features/dashboard/useBrandingApi"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { LogOut, Play } from "lucide-react"
+import { KeyRound, LogOut, Play } from "lucide-react"
 import { useState, useRef } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -214,10 +216,12 @@ const DashboardPage = () => {
   const { manager, loading: authLoading, logout } = useDashboardAuth()
   const isSuperadmin = manager?.role === "superadmin"
 
-  const { quizzes, loading: quizLoading, deleteQuiz, importQuiz, exportQuiz } = useQuizApi()
+  const { quizzes, loading: quizLoading, deleteQuiz, importQuiz, exportQuiz, setQuizVisibility } = useQuizApi()
   const { results, loading: resultsLoading, getResult, deleteResult, setVisibility } = useResultsApi()
 
   const [activeTab, setActiveTab] = useState<TabKey>("quizz")
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [passwordSuccessData, setPasswordSuccessData] = useState<{ otherSessions: number } | null>(null)
   const { t } = useTranslation()
 
   const handleLogout = async () => {
@@ -247,6 +251,13 @@ const DashboardPage = () => {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
+            <button
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-sm p-1.5"
+              onClick={() => setShowChangePassword(true)}
+              title="Changer le mot de passe"
+            >
+              <KeyRound className="size-4" />
+            </button>
             <button
               className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-sm p-1.5"
               onClick={handleLogout}
@@ -295,9 +306,11 @@ const DashboardPage = () => {
             <DashboardQuizList
               quizzes={quizzes}
               loading={quizLoading}
+              currentManagerId={manager?.id ?? ""}
               onDelete={deleteQuiz}
               onImport={importQuiz}
               onExport={exportQuiz}
+              onSetVisibility={setQuizVisibility}
             />
           )}
           {activeTab === "results" && (
@@ -319,6 +332,23 @@ const DashboardPage = () => {
           )}
         </div>
       </Card>
+
+      {showChangePassword && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={(otherSessions) => {
+            setShowChangePassword(false)
+            setPasswordSuccessData({ otherSessions })
+          }}
+        />
+      )}
+
+      {passwordSuccessData && (
+        <PasswordSuccessModal
+          otherSessions={passwordSuccessData.otherSessions}
+          onClose={() => setPasswordSuccessData(null)}
+        />
+      )}
     </Background>
   )
 }

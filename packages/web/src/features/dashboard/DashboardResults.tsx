@@ -1,9 +1,10 @@
 import type { GameResult } from "@razzia/common/types/game"
 import AlertDialog from "@razzia/web/components/AlertDialog"
+import Input from "@razzia/web/components/Input"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
 import ShareResultModal from "@razzia/web/features/dashboard/ShareResultModal"
 import { useAllManagers } from "@razzia/web/features/dashboard/useAllManagers"
-import { Globe, Lock, Share2, Trash2 } from "lucide-react"
+import { Globe, Lock, Search, Share2, Trash2 } from "lucide-react"
 import { useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -63,7 +64,23 @@ const DashboardResults = ({
 }: Props) => {
   const [selectedResult, setSelectedResult] = useState<GameResult | null>(null)
   const [sharingResult, setSharingResult] = useState<ApiResultMeta | null>(null)
-  const allManagers = useAllManagers()
+  const [search, setSearch] = useState("")
+
+  // Filtrage par nom de quiz ou date DD/MM/YYYY
+  const filteredResults = results.filter((r) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    // Recherche par nom de quiz
+    if (r.subject.toLowerCase().includes(q)) return true
+    // Recherche par date DD/MM/YYYY — convertit la date ISO en DD/MM/YYYY pour comparaison
+    const d = new Date(r.date)
+    const dd = String(d.getDate()).padStart(2, "0")
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const yyyy = String(d.getFullYear())
+    const formatted = `${dd}/${mm}/${yyyy}`
+    return formatted.includes(q)
+  })
+  const { managers: allManagers, reload: reloadManagers } = useAllManagers()
   const { t } = useTranslation()
 
   const handleOpen = async (id: string) => {
@@ -96,8 +113,20 @@ const DashboardResults = ({
 
   return (
     <>
+      {/* Recherche par nom ou date DD/MM/YYYY */}
+      <div className="relative mb-3 shrink-0">
+        <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+        <Input
+          variant="sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher par nom ou date (JJ/MM/AAAA)…"
+          className="w-full pl-7"
+        />
+      </div>
+
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
-        {results.map((r) => {
+        {filteredResults.map((r) => {
           const isOwner = r.owner_id === currentManagerId
           return (
             <div
@@ -138,7 +167,10 @@ const DashboardResults = ({
                           : "text-muted-foreground hover:bg-accent-foreground/10"
                       }`}
                       title="Gérer le partage"
-                      onClick={() => setSharingResult(r)}
+                      onClick={() => {
+                        reloadManagers()
+                        setSharingResult(r)
+                      }}
                     >
                       <Share2 className="size-3.5" />
                     </button>
@@ -164,9 +196,11 @@ const DashboardResults = ({
           )
         })}
 
-        {results.length === 0 && (
+        {filteredResults.length === 0 && (
           <p className="text-muted-foreground my-8 text-center text-sm">
-            {t("manager:result.none")}
+            {search
+              ? `Aucun résultat pour "${search}"`
+              : t("manager:result.none")}
           </p>
         )}
       </div>

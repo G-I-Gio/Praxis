@@ -27,6 +27,17 @@ Chaque quiz dispose d'un niveau de visibilité :
 | **Public** | Tous les managers |
 | **Partagé** | Managers sélectionnés |
 
+### Partage avec des managers spécifiques
+
+Le bouton **Share2** (icône de partage) sur chaque quiz ouvre une modale de gestion du partage :
+
+- **A accès** — liste des managers ayant accès, avec bouton pour retirer l'accès
+- **Ajouter un accès** — liste des managers disponibles avec champ de recherche, bouton + pour donner l'accès
+
+La visibilité bascule automatiquement en `shared` quand au moins un manager est ajouté, et repasse en `private` quand la liste est vidée.
+
+> **Lecture seule pour les non-propriétaires** : un manager qui reçoit un quiz en partage peut le consulter et l'utiliser pour lancer une partie, mais ne peut pas le modifier ni le supprimer. Seul le propriétaire voit les boutons de modification et de suppression.
+
 ### Import / Export
 
 - **Export** — télécharge le quiz au format JSON (sans métadonnées internes)

@@ -17,6 +17,7 @@ Praxis est un fork de [Razzia](https://github.com/Ralex91/Razzia) enrichi pour u
 - [🔁 Reverse Proxy](reverse-proxy.md) — Traefik, Caddy, Nginx, NPM
 - [🔌 Protocole WebSocket](websocket-protocol.md) — protocole joueur, client alternatif (ESP32...)
 - [🔧 Modifications apportées à Razzia](modifications.md) — notre approche, ce qu'on a fait et pourquoi
+- [📋 Changelog](changelog.md) — historique des versions
 
 ---
 

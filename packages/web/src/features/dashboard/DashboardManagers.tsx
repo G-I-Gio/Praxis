@@ -1,7 +1,7 @@
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
-import { Pencil, Plus, Trash2, X, Check } from "lucide-react"
+import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
 import toast from "react-hot-toast"
 import type { ApiManager } from "./useManagersApi"
@@ -45,6 +45,11 @@ const DashboardManagers = ({
     role: "manager",
   })
   const [busy, setBusy] = useState(false)
+  const [search, setSearch] = useState("")
+
+  const filteredManagers = managers.filter((m) =>
+    m.username.toLowerCase().includes(search.toLowerCase()),
+  )
 
   const handleCreate = async () => {
     if (!form.username || !form.password) {
@@ -103,6 +108,18 @@ const DashboardManagers = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {/* Recherche */}
+      <div className="relative shrink-0">
+        <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+        <Input
+          variant="sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un compte…"
+          className="w-full pl-7"
+        />
+      </div>
+
       {/* Bouton créer */}
       {!creating && (
         <Button
@@ -166,7 +183,7 @@ const DashboardManagers = ({
 
       {/* Liste */}
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
-        {managers.map((m) => (
+        {filteredManagers.map((m) => (
           <div key={m.id}>
             {editingId === m.id ? (
               /* Ligne édition */
@@ -253,9 +270,9 @@ const DashboardManagers = ({
           </div>
         ))}
 
-        {managers.length === 0 && (
+        {filteredManagers.length === 0 && (
           <p className="text-muted-foreground my-8 text-center text-sm">
-            Aucun compte manager
+            {search ? `Aucun résultat pour "${search}"` : "Aucun compte manager"}
           </p>
         )}
       </div>

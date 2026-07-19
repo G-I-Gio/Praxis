@@ -380,6 +380,64 @@ const handleLogout = (req: IncomingMessage, res: ServerResponse): void => {
   return json(res, 200, { ok: true })
 }
 
+// PUT /auth/password — changer son propre mot de passe (tout manager authentifié)
+const handleChangePassword = requireAuth(async (req, res, manager) => {
+  const body = parseJson(await readBody(req))
+  const currentPassword = body?.current_password as string | undefined
+  const newPassword = body?.new_password as string | undefined
+
+  if (!currentPassword || !newPassword) {
+    return json(res, 400, { error: "current_password et new_password sont requis" })
+  }
+  if (newPassword.length < 8) {
+    return json(res, 400, { error: "Le nouveau mot de passe doit faire au moins 8 caractères" })
+  }
+  if (newPassword === currentPassword) {
+    return json(res, 400, { error: "Le nouveau mot de passe doit être différent de l'actuel" })
+  }
+
+  const row = getDb()
+    .prepare("SELECT password_hash FROM managers WHERE id = ?")
+    .get(manager.id) as { password_hash: string } | undefined
+
+  if (!row) return json(res, 404, { error: "Compte introuvable" })
+
+  const valid = await bcrypt.compare(currentPassword, row.password_hash)
+  if (!valid) return json(res, 401, { error: "Mot de passe actuel incorrect" })
+
+  const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
+  getDb()
+    .prepare("UPDATE managers SET password_hash = ? WHERE id = ?")
+    .run(newHash, manager.id)
+
+  const currentToken = getCookie(req, COOKIE_NAME) ?? ""
+  const { otherCount } = getDb()
+    .prepare(
+      "SELECT COUNT(*) as otherCount FROM manager_sessions WHERE manager_id = ? AND token != ?",
+    )
+    .get(manager.id, currentToken) as { otherCount: number }
+
+  audit("password_changed", manager.id, getIp(req))
+  return json(res, 200, { ok: true, other_sessions: otherCount })
+})
+
+// POST /auth/sessions/invalidate — invalider toutes les autres sessions
+const handleInvalidateOtherSessions = requireAuth((req, res, manager) => {
+  const currentToken = getCookie(req, COOKIE_NAME) ?? ""
+  const { count } = getDb()
+    .prepare(
+      "SELECT COUNT(*) as count FROM manager_sessions WHERE manager_id = ? AND token != ?",
+    )
+    .get(manager.id, currentToken) as { count: number }
+
+  getDb()
+    .prepare("DELETE FROM manager_sessions WHERE manager_id = ? AND token != ?")
+    .run(manager.id, currentToken)
+
+  audit("sessions_invalidated", manager.id, getIp(req), `invalidated ${count} session(s)`)
+  return json(res, 200, { ok: true, invalidated: count })
+})
+
 // GET /health — endpoint infra pour Docker HEALTHCHECK et reverse proxies
 // Répond 200 si prêt, 503 si démarrage en cours ou arrêt
 const handleHealth = (_req: IncomingMessage, res: ServerResponse): void => {
@@ -778,6 +836,38 @@ const handleDeleteResult = requireAuth((req, res, manager) => {
   return json(res, 200, { ok: true })
 })
 
+// PATCH /api/quizzes/:id/visibility
+const handleUpdateQuizVisibility = requireAuth(async (req, res, manager) => {
+  const id = extractParam(req.url!, "/api/quizzes/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const quiz = getDb()
+    .prepare("SELECT * FROM quizzes WHERE id = ?")
+    .get(id) as DbQuiz | undefined
+
+  if (!quiz) return json(res, 404, { error: "Quiz not found" })
+  if (!canWriteQuiz(quiz, manager.id, manager.role))
+    return json(res, 403, { error: "Forbidden" })
+
+  const body = parseJson(await readBody(req))
+  const visibility = body?.visibility as string | undefined
+  if (!visibility || !["private", "public", "shared"].includes(visibility))
+    return json(res, 400, { error: "visibility must be private, public or shared" })
+
+  const sharedWith = Array.isArray(body?.shared_with)
+    ? (body.shared_with as string[])
+    : []
+
+  getDb()
+    .prepare(
+      "UPDATE quizzes SET visibility = ?, shared_with = ?, updated_at = unixepoch() WHERE id = ?",
+    )
+    .run(visibility, JSON.stringify(sharedWith), id)
+
+  audit("quiz_visibility_updated", manager.id, getIp(req), `quiz_id=${id} visibility=${visibility}`)
+  return json(res, 200, { ok: true })
+})
+
 // PATCH /api/results/:id/visibility
 const handleUpdateResultVisibility = requireAuth(async (req, res, manager) => {
   const id = extractParam(req.url!, "/api/results/", 1)
@@ -989,19 +1079,21 @@ const extractParam = (url: string, prefix: string, segment: number): string | nu
 type Handler = (req: IncomingMessage, res: ServerResponse) => Promise<void> | void
 
 const STATIC_ROUTES: Record<string, Record<string, Handler>> = {
-  "/health":        { GET: handleHealth },
-  "/auth/setup":    { POST: handleSetup },
-  "/auth/status":   { GET: handleStatus },
-  "/auth/login": { POST: handleLogin },
-  "/auth/logout": { POST: handleLogout },
-  "/auth/me": { GET: handleMe },
-  "/auth/token": { GET: handleToken },
-  "/api/quizzes": { GET: handleListQuizzes, POST: handleCreateQuiz },
-  "/api/quizzes/import": { POST: handleImportQuiz },
-  "/api/managers": { GET: handleListManagers, POST: handleCreateManager },
-  "/api/results": { GET: handleListResults },
-  "/api/branding": { GET: handleGetBranding, PATCH: handlePatchBranding },
-  "/api/branding/apply": { POST: handleBrandingApply },
+  "/health":                   { GET: handleHealth },
+  "/auth/setup":               { POST: handleSetup },
+  "/auth/status":              { GET: handleStatus },
+  "/auth/login":               { POST: handleLogin },
+  "/auth/logout":              { POST: handleLogout },
+  "/auth/password":            { PUT: handleChangePassword },
+  "/auth/sessions/invalidate": { POST: handleInvalidateOtherSessions },
+  "/auth/me":                  { GET: handleMe },
+  "/auth/token":               { GET: handleToken },
+  "/api/quizzes":              { GET: handleListQuizzes, POST: handleCreateQuiz },
+  "/api/quizzes/import":       { POST: handleImportQuiz },
+  "/api/managers":             { GET: handleListManagers, POST: handleCreateManager },
+  "/api/results":              { GET: handleListResults },
+  "/api/branding":             { GET: handleGetBranding, PATCH: handlePatchBranding },
+  "/api/branding/apply":       { POST: handleBrandingApply },
 }
 
 const resolveHandler = (url: string, method: string): Handler | null => {
@@ -1010,12 +1102,13 @@ const resolveHandler = (url: string, method: string): Handler | null => {
   // Static routes (exact match)
   if (STATIC_ROUTES[path]?.[method]) return STATIC_ROUTES[path][method]!
 
-  // Dynamic quiz routes: /api/quizzes/:id and /api/quizzes/:id/export
+  // Dynamic quiz routes: /api/quizzes/:id and /api/quizzes/:id/export|visibility
   if (path.startsWith("/api/quizzes/")) {
     const rest = path.slice("/api/quizzes/".length)
     const [id, sub] = rest.split("/")
 
     if (id && sub === "export" && method === "GET") return handleExportQuiz
+    if (id && sub === "visibility" && method === "PATCH") return handleUpdateQuizVisibility
     if (id && !sub) {
       if (method === "GET") return handleGetQuiz
       if (method === "PUT") return handleUpdateQuiz

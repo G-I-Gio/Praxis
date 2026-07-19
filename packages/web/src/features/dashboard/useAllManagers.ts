@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 export interface ManagerEntry {
   id: string
@@ -8,7 +8,7 @@ export interface ManagerEntry {
 export const useAllManagers = () => {
   const [managers, setManagers] = useState<ManagerEntry[]>([])
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     fetch("/api/managers", { credentials: "include" })
       .then((r) => r.json())
       .then((d: { managers: ManagerEntry[] }) => setManagers(d.managers))
@@ -17,5 +17,7 @@ export const useAllManagers = () => {
       })
   }, [])
 
-  return managers
+  useEffect(() => { reload() }, [reload])
+
+  return { managers, reload }
 }
