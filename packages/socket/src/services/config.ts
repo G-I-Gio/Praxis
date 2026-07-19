@@ -1,4 +1,5 @@
 import { EXAMPLE_QUIZZ } from "@razzia/common/constants"
+import logger from "@razzia/socket/services/logger"
 import type {
   GameResult,
   GameResultMeta,
@@ -113,9 +114,7 @@ export const initConfig = () => {
         2,
       ),
     )
-    console.warn(
-      "⚠️  config/admin.json créé. Configurez le mot de passe admin avec : pnpm hash-password <mot_de_passe>",
-    )
+    logger.warn("config/admin.json créé — configurez le mot de passe avec : pnpm hash-password <mot_de_passe>")
   }
 
   const isQuizzExists = fs.existsSync(getPath("quizz"))
@@ -142,7 +141,7 @@ export const getGameConfig = (): GameConfig => {
 
     return JSON.parse(config) as GameConfig
   } catch (error) {
-    console.error("Failed to read game config:", error)
+    logger.error("Failed to read game config", { error: String(error) })
   }
 
   return {} as GameConfig
@@ -176,7 +175,7 @@ export const getQuizz = (): QuizzWithId[] => {
       const data = readJson(filePath)
 
       if (!data) {
-        console.warn(`Invalid quizz config "${file}": unreadable`)
+        logger.warn("Invalid quizz config: unreadable", { file })
 
         return []
       }
@@ -184,7 +183,7 @@ export const getQuizz = (): QuizzWithId[] => {
       const result = quizzValidator.safeParse(data)
 
       if (!result.success) {
-        console.warn(`Invalid quizz config "${file}":`, result.error.issues)
+        logger.warn("Invalid quizz config: validation error", { file, issues: result.error.issues })
 
         return []
       }
@@ -205,7 +204,7 @@ export const getQuizz = (): QuizzWithId[] => {
 
     return quizz
   } catch (error) {
-    console.error("Failed to read quizz config:", error)
+    logger.error("Failed to read quizz config", { error: String(error) })
 
     return []
   }
@@ -247,9 +246,9 @@ export const saveResult = (data: GameResult): void => {
       JSON.stringify(data, null, 2),
     )
 
-    console.log(`Saved result for "${data.subject}"`)
+    logger.info("Result saved to file", { subject: data.subject })
   } catch (error) {
-    console.error("Failed to save result:", error)
+    logger.error("Failed to save result", { error: String(error) })
   }
 }
 

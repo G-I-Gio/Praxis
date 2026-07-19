@@ -5,19 +5,52 @@ import { quizzSocketHandlers } from "@razzia/socket/handlers/quizz"
 import { resultsSocketHandlers } from "@razzia/socket/handlers/results"
 import type { SocketHandler } from "@razzia/socket/handlers/types"
 import { initConfig } from "@razzia/socket/services/config"
+import {
+  closeDatabase,
+  initDatabase,
+  isSetupDone,
+  purgeExpiredSessions,
+} from "@razzia/socket/services/database"
+import { setCheck, setShuttingDown } from "@razzia/socket/services/health"
+import { createHttpServer, setSocketIo } from "@razzia/socket/services/http"
+import logger from "@razzia/socket/services/logger"
 import Registry from "@razzia/socket/services/registry"
 import { Server as ServerIO } from "socket.io"
 
-const WS_PORT = 3001
+const PORT = 3001
 
-const io: Server = new ServerIO({
-  path: "/ws",
+// ── 1. Configuration ──────────────────────────────────────────────────────────
+try {
+  initConfig()
+  setCheck("config", "ok")
+} catch (err) {
+  setCheck("config", "error", String(err))
+  logger.error("[startup] Échec initConfig", { error: String(err) })
+  process.exit(1)
+}
+
+// ── 2. Base de données ────────────────────────────────────────────────────────
+try {
+  initDatabase()
+  setCheck("database", "ok", `Setup effectué : ${isSetupDone()}`)
+} catch (err) {
+  setCheck("database", "error", String(err))
+  logger.error("[startup] Échec initDatabase", { error: String(err) })
+  process.exit(1)
+}
+
+// ── 3. Serveur HTTP + Socket.IO ───────────────────────────────────────────────
+const httpServer = createHttpServer()
+const io: Server = new ServerIO(httpServer, { path: "/ws" })
+
+setSocketIo(io)
+
+httpServer.listen(PORT, () => {
+  setCheck("http", "ok", `Port ${PORT}`)
+  logger.info("[startup] Serveur HTTP prêt", { port: PORT })
 })
-initConfig()
 
-console.log(`Socket server running on port ${WS_PORT}`)
-io.listen(WS_PORT)
-
+// ── 4. Handlers WebSocket ─────────────────────────────────────────────────────
 const socketHandlers: SocketHandler[] = [
   managerSocketHandlers,
   quizzSocketHandlers,
@@ -26,21 +59,39 @@ const socketHandlers: SocketHandler[] = [
 ]
 
 io.on("connection", (socket) => {
-  console.log(
-    `A user connected: socketId: ${socket.id}, clientId: ${socket.handshake.auth.clientId}`,
-  )
+  socketHandlers.forEach((handler) => handler({ io, socket }))
+})
 
-  socketHandlers.forEach((handler) => {
-    handler({ io, socket })
+// Socket.IO est prêt dès que les handlers sont enregistrés
+setCheck("socket", "ok")
+logger.info("[startup] Handlers WebSocket enregistrés — application prête")
+
+// ── Tâches périodiques ────────────────────────────────────────────────────────
+setInterval(purgeExpiredSessions, 60 * 60 * 1000)
+
+// ── Arrêt propre ──────────────────────────────────────────────────────────────
+const shutdown = (signal: string) => {
+  logger.info("[shutdown] Signal reçu — arrêt en cours", { signal })
+
+  // Signaler immédiatement aux reverse proxies que le serveur n'est plus dispo
+  setShuttingDown()
+
+  // Laisser le temps aux requêtes en cours de se terminer (10s max)
+  const timeout = setTimeout(() => {
+    logger.warn("[shutdown] Timeout dépassé — arrêt forcé")
+    process.exit(1)
+  }, 10_000)
+
+  // Nettoyage
+  Registry.getInstance().cleanup()
+  closeDatabase()
+
+  httpServer.close(() => {
+    clearTimeout(timeout)
+    logger.info("[shutdown] Arrêt propre effectué")
+    process.exit(0)
   })
-})
+}
 
-process.on("SIGINT", () => {
-  Registry.getInstance().cleanup()
-  process.exit(0)
-})
-
-process.on("SIGTERM", () => {
-  Registry.getInstance().cleanup()
-  process.exit(0)
-})
+process.on("SIGINT",  () => shutdown("SIGINT"))
+process.on("SIGTERM", () => shutdown("SIGTERM"))

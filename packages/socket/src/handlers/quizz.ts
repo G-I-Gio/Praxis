@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import logger from "@razzia/socket/services/logger"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import {
   deleteQuizz,
@@ -17,7 +18,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
 
         socket.emit(EVENTS.QUIZZ.DATA, quizz)
       } catch (error) {
-        console.error("Failed to get quizz:", error)
+        logger.error("Failed to get quizz", { error: String(error) })
         socket.emit(EVENTS.QUIZZ.ERROR, "errors:quizz.notFound")
       }
     }),
@@ -32,7 +33,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
         socket.emit(EVENTS.QUIZZ.SAVE_SUCCESS, { id })
         emitConfig(socket)
       } catch (error) {
-        console.error("Failed to save quizz:", error)
+        logger.error("Failed to save quizz", { error: String(error) })
         const message =
           error instanceof Error ? error.message : "errors:quizz.failedToSave"
         socket.emit(EVENTS.QUIZZ.ERROR, message)
@@ -48,7 +49,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
 
         emitConfig(socket)
       } catch (error) {
-        console.error("Failed to delete quizz:", error)
+        logger.error("Failed to delete quizz", { error: String(error) })
         socket.emit(EVENTS.QUIZZ.ERROR, "errors:quizz.failedToDelete")
       }
     }),
@@ -63,7 +64,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
         socket.emit(EVENTS.QUIZZ.UPDATE_SUCCESS, { id: newId })
         emitConfig(socket)
       } catch (error) {
-        console.error("Failed to update quizz:", error)
+        logger.error("Failed to update quizz", { error: String(error) })
         const message =
           error instanceof Error ? error.message : "errors:quizz.failedToUpdate"
         socket.emit(EVENTS.QUIZZ.ERROR, message)

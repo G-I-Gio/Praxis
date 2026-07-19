@@ -1,37 +1,66 @@
-# Quiz Configuration
+# 🎮 Quiz
 
-Quizzes live in `config/quizz/*.json` (alongside `config/game.json`, see [Configuration](configuration.md)).
+> 🇬🇧 [English version](quiz.en.md)
 
-Quizzes can be created in two ways:
+Praxis gère deux types de quiz :
 
-- **Via the Quiz Editor**: use the built-in editor available in the manager dashboard (recommended)
-- **Via JSON files**: manually create files in the `config/quizz/` directory
+- **Quiz privés** — stockés en base SQLite, créés et gérés via le tableau de bord manager
+- **Quiz publics** — fichiers JSON dans `config/quizz/`, lisibles par tous les managers (lecture seule)
 
-You can have multiple quiz files and select which one to use when starting a game.
+---
 
-Example quiz configuration (`config/quizz/example.json`):
+## Créer un quiz via le tableau de bord
+
+C'est la méthode recommandée. Depuis `/manager/dashboard` :
+
+1. Onglet **Quiz** → bouton **Créer**
+2. L'éditeur intégré permet d'ajouter des questions, réponses et médias
+3. Sauvegarder — le quiz est enregistré en base SQLite et appartient à votre compte
+
+### Visibilité
+
+Chaque quiz dispose d'un niveau de visibilité :
+
+| Visibilité | Accès |
+|---|---|
+| **Privé** | Vous uniquement |
+| **Public** | Tous les managers |
+| **Partagé** | Managers sélectionnés |
+
+### Import / Export
+
+- **Export** — télécharge le quiz au format JSON (sans métadonnées internes)
+- **Import** — importe un fichier JSON dans votre bibliothèque privée
+
+---
+
+## Quiz publics (fichiers JSON)
+
+Les fichiers placés dans `config/quizz/` sont chargés au démarrage comme quiz publics, visibles par tous les managers en lecture seule.
+
+Exemple (`config/quizz/exemple.json`) :
 
 ```json
 {
-  "subject": "Example Quiz",
+  "subject": "Quiz Exemple",
   "questions": [
     {
-      "question": "What is the correct answer?",
-      "answers": ["No", "Yes", "No", "No"],
+      "question": "Quelle est la bonne réponse ?",
+      "answers": ["Non", "Oui", "Non", "Non"],
       "solutions": [1],
       "cooldown": 5,
       "time": 15
     },
     {
-      "question": "Which of these are primary colors?",
-      "answers": ["Red", "Green", "Blue", "Yellow"],
+      "question": "Quelles sont les couleurs primaires ?",
+      "answers": ["Rouge", "Vert", "Bleu", "Jaune"],
       "solutions": [0, 2, 3],
       "cooldown": 5,
       "time": 20
     },
     {
-      "question": "What is the correct answer with an image?",
-      "answers": ["No", "Yes", "No", "No"],
+      "question": "Question avec image ?",
+      "answers": ["Non", "Oui", "Non", "Non"],
       "media": {
         "type": "image",
         "url": "https://placehold.co/600x400.png"
@@ -44,19 +73,33 @@ Example quiz configuration (`config/quizz/example.json`):
 }
 ```
 
-Quiz Options:
+---
 
-- `subject`: Title/topic of the quiz
-- `questions`: Array of question objects containing:
-  - `question`: The question text
-  - `answers`: Array of possible answers (2-4 options)
-  - `media`: Optional media object displayed with the question:
-    - `type`: `"image"`, `"video"`, or `"audio"`
-    - `url`: URL of the media
-  - `solutions`: Array of correct answer indices (0-based). Use multiple indices for multi-answer questions
-  - `cooldown`: Time in seconds before answers are revealed (3-15)
-  - `time`: Time in seconds allowed to answer (5-120)
-  - `maxPoints`: Maximum points awarded for a correct answer (default: `1000`, min: `0`)
-  - `penalty`: Points deducted for a wrong answer (default: none, min: `0`). The player's total cannot go below 0. Unanswered questions are not penalised.
+## Référence des champs
 
-> **Note:** the app automatically adds and manages an `id` field inside each quiz file the first time it's loaded — you don't need to set it yourself, and editing it manually may cause conflicts if it collides with another quiz's id.
+### Champs du quiz
+
+| Champ | Type | Description |
+|---|---|---|
+| `subject` | `string` | Titre du quiz |
+| `questions` | `array` | Liste des questions |
+
+### Champs d'une question
+
+| Champ | Type | Défaut | Description |
+|---|---|---|---|
+| `question` | `string` | — | Texte de la question |
+| `answers` | `string[]` | — | 2 à 4 réponses possibles |
+| `solutions` | `number[]` | — | Indices (base 0) des bonnes réponses |
+| `cooldown` | `number` | — | Secondes avant l'affichage des résultats (3–15) |
+| `time` | `number` | — | Secondes accordées pour répondre (5–120) |
+| `maxPoints` | `number` | `1000` | Points maximum pour une bonne réponse |
+| `penalty` | `number` | aucun | Points retirés pour une mauvaise réponse (le total ne peut pas descendre en dessous de 0) |
+| `media.type` | `string` | — | `"image"`, `"video"` ou `"audio"` |
+| `media.url` | `string` | — | URL du média associé à la question |
+
+> **Note :** un champ `id` est automatiquement ajouté par l'application au premier chargement. Ne pas le modifier manuellement.
+
+---
+
+Retour à l'[index de la documentation](README.md).

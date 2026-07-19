@@ -89,12 +89,16 @@ export interface ServerToClientEvents {
 
   // Results events
   [EVENTS.RESULTS.DATA]: (_result: GameResult) => void
+
+  // Branding events
+  [EVENTS.BRANDING.RELOAD]: () => void
 }
 
 export interface ClientToServerEvents {
   // Manager actions
   [EVENTS.GAME.CREATE]: (_quizzId: string) => void
   [EVENTS.MANAGER.AUTH]: (_password: string) => void
+  [EVENTS.MANAGER.AUTH_SESSION]: (_token: string) => void
   [EVENTS.MANAGER.RECONNECT]: (_message: { gameId: string }) => void
   [EVENTS.MANAGER.LEAVE]: (_message: { gameId: string }) => void
   [EVENTS.MANAGER.KICK_PLAYER]: (_message: {

@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import logger from "@razzia/socket/services/logger"
 import type { Player, Quizz } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
@@ -7,6 +8,7 @@ import {
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
 import { saveResult } from "@razzia/socket/services/config"
+import { saveResultDb } from "@razzia/socket/services/database"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { RoundManager } from "@razzia/socket/services/game/round-manager"
@@ -46,6 +48,11 @@ class Game {
 
   constructor(io: Server, socket: Socket, quizz: Quizz) {
     const clientId = getClientId(socket)
+    // Récupéré si le manager s'est authentifié via AUTH_SESSION (dashboard)
+    const managerId =
+      (socket as unknown as { data: Record<string, unknown> }).data?.managerId as
+        | string
+        | undefined
 
     this.io = io
     this.gameId = uuid()
@@ -64,6 +71,12 @@ class Game {
       () => this._manager.id,
     )
 
+    // Si on a un managerId SQLite → sauvegarder en base, sinon fichier JSON (legacy)
+    const onGameFinished = managerId
+      ? (result: import("@razzia/common/types/game").GameResult) =>
+          saveResultDb(result, managerId)
+      : saveResult
+
     this.round = new RoundManager({
       quizz,
       players: this.playerManager,
@@ -77,7 +90,7 @@ class Game {
         this.playerStatus.clear()
         this.managerStatus = null
       },
-      onGameFinished: saveResult,
+      onGameFinished,
     })
 
     socket.join(this.gameId)
@@ -86,9 +99,7 @@ class Game {
       inviteCode: this.inviteCode,
     })
 
-    console.log(
-      `New game created: ${this.inviteCode} subject: ${quizz.subject}`,
-    )
+    logger.info("New game created", { inviteCode: this.inviteCode, subject: quizz.subject })
   }
 
   get manager() {
@@ -187,7 +198,7 @@ class Game {
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
 
     registry.reactivateGame(this.gameId)
-    console.log(`Manager reconnected to game ${this.inviteCode}`)
+    logger.info("Manager reconnected to game", { inviteCode: this.inviteCode })
   }
 
   private reconnectPlayer(socket: Socket) {
@@ -231,9 +242,7 @@ class Game {
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
 
-    console.log(
-      `Player ${player.username} reconnected to game ${this.inviteCode}`,
-    )
+    logger.info("Player reconnected to game", { player: player.username, inviteCode: this.inviteCode })
   }
 
   // Disconnect helpers

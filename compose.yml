@@ -2,6 +2,26 @@ services:
   praxis:
     image: praxis:latest
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     volumes:
       - ./config:/app/config
+    environment:
+      # ── Utilisateur d'exécution ──────────────────────────────────────────
+      # Mettre les valeurs correspondant à l'utilisateur du système hôte :
+      #   Linux : id -u  et  id -g
+      #   Valeur par défaut : 1000:1000
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+
+      # ── Uploads ──────────────────────────────────────────────────────────
+      # Taille maximale des fichiers uploadés (logo, sons…) en Mo
+      # nginx acceptera jusqu'à MAX_UPLOAD_SIZE x 1.25 (marge de sécurité)
+      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE:-10}
+
+      # ── Logs ─────────────────────────────────────────────────────────────
+      # Niveau minimum : debug | info | warn | error (défaut : info)
+      # Note : le niveau "audit" est toujours actif quel que soit LOG_LEVEL
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      # Format de sortie : json (production) | pretty (dev local)
+      LOG_FORMAT: ${LOG_FORMAT:-json}

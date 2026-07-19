@@ -81,9 +81,8 @@ export const applyBranding = (theme: BrandingTheme | null): void => {
     )
   }
 
-  if (theme.appName) {
-    document.title = theme.appName
-  }
+  // Toujours mettre à jour le titre — fallback sur "Praxis" si appName absent
+  document.title = theme.appName || "Praxis"
 
   if (theme.favicon) {
     const favicon = document.querySelector<HTMLLinkElement>("link#favicon")

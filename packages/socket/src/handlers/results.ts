@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import logger from "@razzia/socket/services/logger"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import { deleteResult, getResultById } from "@razzia/socket/services/config"
 import manager, { emitConfig } from "@razzia/socket/services/manager"
@@ -10,7 +11,7 @@ export const resultsSocketHandlers = ({ socket }: SocketContext) => {
       try {
         socket.emit(EVENTS.RESULTS.DATA, getResultById(id))
       } catch (error) {
-        console.error("Failed to get result:", error)
+        logger.error("Failed to get result", { error: String(error) })
       }
     }),
   )
@@ -22,7 +23,7 @@ export const resultsSocketHandlers = ({ socket }: SocketContext) => {
         deleteResult(id)
         emitConfig(socket)
       } catch (error) {
-        console.error("Failed to delete result:", error)
+        logger.error("Failed to delete result", { error: String(error) })
       }
     }),
   )

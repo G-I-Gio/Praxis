@@ -40,6 +40,8 @@
   "tabs": {
     "play": "Spielen",
     "quizz": "Quiz",
-    "results": "Ergebnisse"
+    "results": "Ergebnisse",
+    "managers": "Accounts",
+    "appearance": "Appearance"
   }
 }

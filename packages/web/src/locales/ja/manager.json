@@ -40,6 +40,8 @@
   "tabs": {
     "play": "プレイ",
     "quizz": "クイズ",
-    "results": "結果"
+    "results": "結果",
+    "managers": "Accounts",
+    "appearance": "Appearance"
   }
 }

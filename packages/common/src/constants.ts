@@ -39,6 +39,7 @@ export const EVENTS = {
     ERROR_MESSAGE: "manager:errorMessage",
     PLAYER_KICKED: "manager:playerKicked",
     AUTH: "manager:auth",
+    AUTH_SESSION: "manager:authSession",
     RECONNECT: "manager:reconnect",
     LEAVE: "manager:leave",
     KICK_PLAYER: "manager:kickPlayer",
@@ -64,6 +65,9 @@ export const EVENTS = {
     GET: "results:get",
     DATA: "results:data",
     DELETE: "results:delete",
+  },
+  BRANDING: {
+    RELOAD: "branding:reload",
   },
 } as const
 

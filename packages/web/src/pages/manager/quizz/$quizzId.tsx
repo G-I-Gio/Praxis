@@ -1,10 +1,5 @@
-import { EVENTS } from "@razzia/common/constants"
 import type { QuizzWithId } from "@razzia/common/types/game"
 import Loader from "@razzia/web/components/Loader"
-import {
-  useEvent,
-  useSocket,
-} from "@razzia/web/features/game/contexts/socket-context"
 import QuestionEditor from "@razzia/web/features/quizz/components/QuestionEditor"
 import QuizzEditorHeader from "@razzia/web/features/quizz/components/QuizzEditorHeader"
 import QuizzEditorSidebar from "@razzia/web/features/quizz/components/QuizzEditorSidebar"
@@ -14,18 +9,29 @@ import { useEffect, useState } from "react"
 
 const QuizzEditPage = () => {
   const { quizzId } = Route.useParams()
-  const { socket } = useSocket()
   const [quizz, setQuizz] = useState<QuizzWithId | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    socket.emit(EVENTS.QUIZZ.GET, quizzId)
-  }, [socket, quizzId])
+    fetch(`/api/quizzes/${quizzId}`, { credentials: "include" })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json() as Promise<QuizzWithId & { owner_id: string; visibility: string; shared_with: string[] }>
+      })
+      .then((data) => {
+        // Normaliser : QuizzWithId = { id, subject, questions }
+        setQuizz({ id: data.id, subject: data.subject, questions: data.questions })
+      })
+      .catch((e: Error) => setError(e.message))
+  }, [quizzId])
 
-  useEvent(EVENTS.QUIZZ.DATA, (data) => {
-    if (data.id === quizzId) {
-      setQuizz(data)
-    }
-  })
+  if (error) {
+    return (
+      <div className="bg-muted flex h-svh items-center justify-center text-red-500">
+        Erreur : {error}
+      </div>
+    )
+  }
 
   if (!quizz) {
     return (
@@ -38,7 +44,7 @@ const QuizzEditPage = () => {
   return (
     <QuizzEditorProvider initialData={quizz}>
       <div className="bg-muted relative flex h-svh flex-col">
-        <QuizzEditorHeader />
+        <QuizzEditorHeader apiMode />
         <div className="flex flex-1 overflow-hidden">
           <QuizzEditorSidebar />
           <QuestionEditor />

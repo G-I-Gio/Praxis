@@ -1,11 +1,23 @@
-# 📚 Documentation
+# 📚 Documentation Praxis
 
-This folder covers the basic setup (config, quizzes, branding) as well as more advanced usage, like running behind a reverse proxy or building your own client.
+Praxis est un fork de [Razzia](https://github.com/Ralex91/Razzia) enrichi pour un usage en entreprise. Cette documentation couvre l'installation, la configuration, l'utilisation et les modifications apportées au projet original.
 
-- [Configuration](configuration.md): manager password, via the `config` folder.
-- [Quiz](quiz.md): creating and structuring quizzes via `config/quizz/*.json`.
-- [Branding](branding.md): optional custom theming via `config/branding/`.
-- [Reverse Proxy](reverse-proxy.md): running Razzia behind Traefik, Nginx, Caddy, or another reverse proxy.
-- [WebSocket Protocol](websocket-protocol.md): the player-facing event protocol, for building custom clients (e.g. a physical buzzer).
+> 🇬🇧 [English documentation available here](README.en.md)
 
-Back to the [main README](../README.md).
+---
+
+## Guides
+
+- [🚀 Démarrage rapide](demarrage.md) — installation, premier lancement, création du super-admin
+- [⚙️ Configuration](configuration.md) — variables d'environnement, volume `config/`
+- [🎮 Quiz](quiz.md) — créer et structurer des quiz
+- [🎨 Branding](branding.md) — personnalisation visuelle et audio
+- [👥 Gestion des managers](managers.md) — comptes, rôles, tableau de bord superadmin
+- [📋 Logs](logs.md) — logs structurés JSON, filtres, niveaux
+- [🔁 Reverse Proxy](reverse-proxy.md) — Traefik, Caddy, Nginx, NPM
+- [🔌 Protocole WebSocket](websocket-protocol.md) — protocole joueur, client alternatif (ESP32...)
+- [🔧 Modifications apportées à Razzia](modifications.md) — notre approche, ce qu'on a fait et pourquoi
+
+---
+
+Retour au [README principal](../README.md).

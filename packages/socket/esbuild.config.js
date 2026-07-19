@@ -7,6 +7,7 @@ export const config = {
   platform: "node",
   outfile: "dist/index.cjs",
   sourcemap: true,
+  external: ["better-sqlite3"],
   define: {
     "process.env.NODE_ENV": '"production"',
   },

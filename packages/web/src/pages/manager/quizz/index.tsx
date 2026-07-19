@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router"
 const QuizzEditorPage = () => (
   <QuizzEditorProvider>
     <div className="bg-muted relative flex h-svh flex-col">
-      <QuizzEditorHeader />
+      <QuizzEditorHeader apiMode />
       <div className="flex flex-1 overflow-hidden">
         <QuizzEditorSidebar />
         <QuestionEditor />
@@ -16,6 +16,6 @@ const QuizzEditorPage = () => (
   </QuizzEditorProvider>
 )
 
-export const Route = createFileRoute("/manager/quizz/")({
+export const Route = createFileRoute("/manager/quizz/")(({
   component: QuizzEditorPage,
-})
+}))

@@ -1,12 +1,38 @@
 import { EVENTS } from "@razzia/common/constants"
+import logger from "@razzia/socket/services/logger"
 import { inviteCodeValidator } from "@razzia/common/validators/auth"
+import type { QuizzWithId } from "@razzia/common/types/game"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import { getQuizz } from "@razzia/socket/services/config"
+import { getDb } from "@razzia/socket/services/database"
 import Game from "@razzia/socket/services/game"
 import manager from "@razzia/socket/services/manager"
 import Registry from "@razzia/socket/services/registry"
 import { withGame } from "@razzia/socket/utils/game"
 import { getClientId } from "@razzia/socket/utils/socket"
+
+/** Cherche un quiz par id dans SQLite d'abord, puis dans config/quizz/ en fallback */
+const findQuizz = (quizzId: string): QuizzWithId | undefined => {
+  // 1. SQLite (quiz créés via dashboard)
+  try {
+    const row = getDb()
+      .prepare("SELECT id, subject, questions FROM quizzes WHERE id = ?")
+      .get(quizzId) as { id: string; subject: string; questions: string } | undefined
+
+    if (row) {
+      return {
+        id: row.id,
+        subject: row.subject,
+        questions: JSON.parse(row.questions),
+      }
+    }
+  } catch {
+    // DB pas encore initialisée ou table absente — on continue vers les fichiers
+  }
+
+  // 2. Fichiers config/quizz/ (quiz legacy)
+  return getQuizz().find((q) => q.id === quizzId)
+}
 
 export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
@@ -31,7 +57,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
       const player = game.removePlayer(socket.id)
 
       if (player) {
-        console.log(`Player ${player.username} left game ${game.gameId}`)
+        logger.info("Player left game", { player: player.username, gameId: game.gameId })
       }
 
       return
@@ -67,8 +93,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   socket.on(
     EVENTS.GAME.CREATE,
     manager.withAuth(socket, (quizzId: string) => {
-      const quizzList = getQuizz()
-      const quizz = quizzList.find((q) => q.id === quizzId)
+      const quizz = findQuizz(quizzId)
 
       if (!quizz) {
         socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
@@ -166,7 +191,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     const game = registry.getManagerGame(gameId, clientId)
 
     if (game) {
-      console.log(`Manager left game ${game.inviteCode}`)
+      logger.info("Manager left game", { inviteCode: game.inviteCode })
       handleManagerLeave(game)
     }
   })
@@ -180,12 +205,12 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   })
 
   socket.on("disconnect", () => {
-    console.log(`A user disconnected : ${socket.id}`)
+    logger.info("User disconnected", { socketId: socket.id })
 
     const managerGame = registry.getGameByManagerSocketId(socket.id)
 
     if (managerGame) {
-      console.log(`Manager disconnected from game ${managerGame.inviteCode}`)
+      logger.info("Manager disconnected from game", { inviteCode: managerGame.inviteCode })
       handleManagerLeave(managerGame)
 
       return

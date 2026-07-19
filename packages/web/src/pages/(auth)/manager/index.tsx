@@ -1,39 +1,83 @@
-import { EVENTS } from "@razzia/common/constants"
-import {
-  useEvent,
-  useSocket,
-} from "@razzia/web/features/game/contexts/socket-context"
-import { useManagerStore } from "@razzia/web/features/game/stores/manager"
-import ManagerPassword from "@razzia/web/features/manager/components/ManagerPassword"
+import Button from "@razzia/web/components/Button"
+import Card from "@razzia/web/components/Card"
+import Input from "@razzia/web/components/Input"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect } from "react"
+import { useState } from "react"
+import toast from "react-hot-toast"
 
-const ManagerAuthPage = () => {
-  const { setConfig } = useManagerStore()
+const ManagerLoginPage = () => {
   const navigate = useNavigate()
-  const { socket, isConnected } = useSocket()
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!isConnected) {
+  const handleLogin = async () => {
+    if (!username || !password) {
+      toast.error("Identifiants requis")
       return
     }
 
-    socket.emit(EVENTS.MANAGER.GET_CONFIG)
-    // oxlint-disable-next-line
-  }, [isConnected])
+    setLoading(true)
+    try {
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      })
 
-  useEvent(EVENTS.MANAGER.CONFIG, (data) => {
-    setConfig(data)
-    navigate({ to: "/manager/config" })
-  })
+      const data = await res.json()
 
-  const handleAuth = (password: string) => {
-    socket.emit(EVENTS.MANAGER.AUTH, password)
+      if (!res.ok) {
+        if (res.status === 429) {
+          toast.error("Trop de tentatives, réessayez dans 15 minutes")
+        } else {
+          toast.error("Identifiants incorrects")
+        }
+        return
+      }
+
+      toast.success(`Bienvenue, ${data.manager.username} !`)
+      navigate({ to: "/manager/dashboard" })
+    } catch {
+      toast.error("Impossible de contacter le serveur")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  return <ManagerPassword onSubmit={handleAuth} />
+  return (
+    <Card className="max-w-sm w-full flex flex-col gap-3">
+        <h1 className="text-xl font-bold text-center text-foreground mb-2">
+          Espace Manager
+        </h1>
+
+        <Input
+          placeholder="Nom d'utilisateur"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+        />
+        <Input
+          type="password"
+          placeholder="Mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+        />
+
+        <Button
+          className="mt-2 w-full"
+          onClick={handleLogin}
+          disabled={loading}
+        >
+          {loading ? "Connexion..." : "Se connecter"}
+        </Button>
+      </Card>
+  )
 }
 
 export const Route = createFileRoute("/(auth)/manager/")({
-  component: ManagerAuthPage,
+  component: ManagerLoginPage,
 })

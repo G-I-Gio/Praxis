@@ -13,11 +13,17 @@ import { Route as authLayoutRouteImport } from './pages/(auth)/layout'
 import { Route as authIndexRouteImport } from './pages/(auth)/index'
 import { Route as PartyGameIdRouteImport } from './pages/party/$gameId'
 import { Route as ManagerConfigRouteImport } from './pages/manager/config'
+import { Route as ManagerDashboardRouteImport } from './pages/manager/dashboard'
+import { Route as LegacyConfigRouteImport } from './pages/legacy/config'
 import { Route as ManagerQuizzLayoutRouteImport } from './pages/manager/quizz/layout'
+import { Route as LegacyQuizzLayoutRouteImport } from './pages/legacy/quizz/layout'
 import { Route as ManagerQuizzIndexRouteImport } from './pages/manager/quizz/index'
+import { Route as LegacyQuizzIndexRouteImport } from './pages/legacy/quizz/index'
 import { Route as authManagerIndexRouteImport } from './pages/(auth)/manager/index'
+import { Route as authLegacyIndexRouteImport } from './pages/(auth)/legacy/index'
 import { Route as PartyManagerGameIdRouteImport } from './pages/party/manager/$gameId'
 import { Route as ManagerQuizzQuizzIdRouteImport } from './pages/manager/quizz/$quizzId'
+import { Route as LegacyQuizzQuizzIdRouteImport } from './pages/legacy/quizz/$quizzId'
 
 const authLayoutRoute = authLayoutRouteImport.update({
   id: '/(auth)',
@@ -38,9 +44,24 @@ const ManagerConfigRoute = ManagerConfigRouteImport.update({
   path: '/manager/config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManagerDashboardRoute = ManagerDashboardRouteImport.update({
+  id: '/manager/dashboard',
+  path: '/manager/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegacyConfigRoute = LegacyConfigRouteImport.update({
+  id: '/legacy/config',
+  path: '/legacy/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManagerQuizzLayoutRoute = ManagerQuizzLayoutRouteImport.update({
   id: '/manager/quizz',
   path: '/manager/quizz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegacyQuizzLayoutRoute = LegacyQuizzLayoutRouteImport.update({
+  id: '/legacy/quizz',
+  path: '/legacy/quizz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManagerQuizzIndexRoute = ManagerQuizzIndexRouteImport.update({
@@ -48,9 +69,19 @@ const ManagerQuizzIndexRoute = ManagerQuizzIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ManagerQuizzLayoutRoute,
 } as any)
+const LegacyQuizzIndexRoute = LegacyQuizzIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LegacyQuizzLayoutRoute,
+} as any)
 const authManagerIndexRoute = authManagerIndexRouteImport.update({
   id: '/manager/',
   path: '/manager/',
+  getParentRoute: () => authLayoutRoute,
+} as any)
+const authLegacyIndexRoute = authLegacyIndexRouteImport.update({
+  id: '/legacy/',
+  path: '/legacy/',
   getParentRoute: () => authLayoutRoute,
 } as any)
 const PartyManagerGameIdRoute = PartyManagerGameIdRouteImport.update({
@@ -63,75 +94,117 @@ const ManagerQuizzQuizzIdRoute = ManagerQuizzQuizzIdRouteImport.update({
   path: '/$quizzId',
   getParentRoute: () => ManagerQuizzLayoutRoute,
 } as any)
+const LegacyQuizzQuizzIdRoute = LegacyQuizzQuizzIdRouteImport.update({
+  id: '/$quizzId',
+  path: '/$quizzId',
+  getParentRoute: () => LegacyQuizzLayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
+  '/legacy/quizz': typeof LegacyQuizzLayoutRouteWithChildren
   '/manager/quizz': typeof ManagerQuizzLayoutRouteWithChildren
+  '/legacy/config': typeof LegacyConfigRoute
   '/manager/config': typeof ManagerConfigRoute
+  '/manager/dashboard': typeof ManagerDashboardRoute
   '/party/$gameId': typeof PartyGameIdRoute
   '/': typeof authIndexRoute
+  '/legacy/quizz/$quizzId': typeof LegacyQuizzQuizzIdRoute
   '/manager/quizz/$quizzId': typeof ManagerQuizzQuizzIdRoute
   '/party/manager/$gameId': typeof PartyManagerGameIdRoute
+  '/legacy/': typeof authLegacyIndexRoute
   '/manager/': typeof authManagerIndexRoute
+  '/legacy/quizz/': typeof LegacyQuizzIndexRoute
   '/manager/quizz/': typeof ManagerQuizzIndexRoute
 }
 export interface FileRoutesByTo {
+  '/legacy/config': typeof LegacyConfigRoute
   '/manager/config': typeof ManagerConfigRoute
+  '/manager/dashboard': typeof ManagerDashboardRoute
   '/party/$gameId': typeof PartyGameIdRoute
   '/': typeof authIndexRoute
+  '/legacy/quizz/$quizzId': typeof LegacyQuizzQuizzIdRoute
   '/manager/quizz/$quizzId': typeof ManagerQuizzQuizzIdRoute
   '/party/manager/$gameId': typeof PartyManagerGameIdRoute
+  '/legacy': typeof authLegacyIndexRoute
   '/manager': typeof authManagerIndexRoute
+  '/legacy/quizz': typeof LegacyQuizzIndexRoute
   '/manager/quizz': typeof ManagerQuizzIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authLayoutRouteWithChildren
+  '/legacy/quizz': typeof LegacyQuizzLayoutRouteWithChildren
   '/manager/quizz': typeof ManagerQuizzLayoutRouteWithChildren
+  '/legacy/config': typeof LegacyConfigRoute
   '/manager/config': typeof ManagerConfigRoute
+  '/manager/dashboard': typeof ManagerDashboardRoute
   '/party/$gameId': typeof PartyGameIdRoute
   '/(auth)/': typeof authIndexRoute
+  '/legacy/quizz/$quizzId': typeof LegacyQuizzQuizzIdRoute
   '/manager/quizz/$quizzId': typeof ManagerQuizzQuizzIdRoute
   '/party/manager/$gameId': typeof PartyManagerGameIdRoute
+  '/(auth)/legacy/': typeof authLegacyIndexRoute
   '/(auth)/manager/': typeof authManagerIndexRoute
+  '/legacy/quizz/': typeof LegacyQuizzIndexRoute
   '/manager/quizz/': typeof ManagerQuizzIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/legacy/quizz'
     | '/manager/quizz'
+    | '/legacy/config'
     | '/manager/config'
+    | '/manager/dashboard'
     | '/party/$gameId'
     | '/'
+    | '/legacy/quizz/$quizzId'
     | '/manager/quizz/$quizzId'
     | '/party/manager/$gameId'
+    | '/legacy/'
     | '/manager/'
+    | '/legacy/quizz/'
     | '/manager/quizz/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/legacy/config'
     | '/manager/config'
+    | '/manager/dashboard'
     | '/party/$gameId'
     | '/'
+    | '/legacy/quizz/$quizzId'
     | '/manager/quizz/$quizzId'
     | '/party/manager/$gameId'
+    | '/legacy'
     | '/manager'
+    | '/legacy/quizz'
     | '/manager/quizz'
   id:
     | '__root__'
     | '/(auth)'
+    | '/legacy/quizz'
     | '/manager/quizz'
+    | '/legacy/config'
     | '/manager/config'
+    | '/manager/dashboard'
     | '/party/$gameId'
     | '/(auth)/'
+    | '/legacy/quizz/$quizzId'
     | '/manager/quizz/$quizzId'
     | '/party/manager/$gameId'
+    | '/(auth)/legacy/'
     | '/(auth)/manager/'
+    | '/legacy/quizz/'
     | '/manager/quizz/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   authLayoutRoute: typeof authLayoutRouteWithChildren
+  LegacyQuizzLayoutRoute: typeof LegacyQuizzLayoutRouteWithChildren
   ManagerQuizzLayoutRoute: typeof ManagerQuizzLayoutRouteWithChildren
+  LegacyConfigRoute: typeof LegacyConfigRoute
   ManagerConfigRoute: typeof ManagerConfigRoute
+  ManagerDashboardRoute: typeof ManagerDashboardRoute
   PartyGameIdRoute: typeof PartyGameIdRoute
   PartyManagerGameIdRoute: typeof PartyManagerGameIdRoute
 }
@@ -166,11 +239,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manager/dashboard': {
+      id: '/manager/dashboard'
+      path: '/manager/dashboard'
+      fullPath: '/manager/dashboard'
+      preLoaderRoute: typeof ManagerDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legacy/config': {
+      id: '/legacy/config'
+      path: '/legacy/config'
+      fullPath: '/legacy/config'
+      preLoaderRoute: typeof LegacyConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manager/quizz': {
       id: '/manager/quizz'
       path: '/manager/quizz'
       fullPath: '/manager/quizz'
       preLoaderRoute: typeof ManagerQuizzLayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legacy/quizz': {
+      id: '/legacy/quizz'
+      path: '/legacy/quizz'
+      fullPath: '/legacy/quizz'
+      preLoaderRoute: typeof LegacyQuizzLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/manager/quizz/': {
@@ -180,11 +274,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerQuizzIndexRouteImport
       parentRoute: typeof ManagerQuizzLayoutRoute
     }
+    '/legacy/quizz/': {
+      id: '/legacy/quizz/'
+      path: '/'
+      fullPath: '/legacy/quizz/'
+      preLoaderRoute: typeof LegacyQuizzIndexRouteImport
+      parentRoute: typeof LegacyQuizzLayoutRoute
+    }
     '/(auth)/manager/': {
       id: '/(auth)/manager/'
       path: '/manager'
       fullPath: '/manager/'
       preLoaderRoute: typeof authManagerIndexRouteImport
+      parentRoute: typeof authLayoutRoute
+    }
+    '/(auth)/legacy/': {
+      id: '/(auth)/legacy/'
+      path: '/legacy'
+      fullPath: '/legacy/'
+      preLoaderRoute: typeof authLegacyIndexRouteImport
       parentRoute: typeof authLayoutRoute
     }
     '/party/manager/$gameId': {
@@ -201,22 +309,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerQuizzQuizzIdRouteImport
       parentRoute: typeof ManagerQuizzLayoutRoute
     }
+    '/legacy/quizz/$quizzId': {
+      id: '/legacy/quizz/$quizzId'
+      path: '/$quizzId'
+      fullPath: '/legacy/quizz/$quizzId'
+      preLoaderRoute: typeof LegacyQuizzQuizzIdRouteImport
+      parentRoute: typeof LegacyQuizzLayoutRoute
+    }
   }
 }
 
 interface authLayoutRouteChildren {
   authIndexRoute: typeof authIndexRoute
+  authLegacyIndexRoute: typeof authLegacyIndexRoute
   authManagerIndexRoute: typeof authManagerIndexRoute
 }
 
 const authLayoutRouteChildren: authLayoutRouteChildren = {
   authIndexRoute: authIndexRoute,
+  authLegacyIndexRoute: authLegacyIndexRoute,
   authManagerIndexRoute: authManagerIndexRoute,
 }
 
 const authLayoutRouteWithChildren = authLayoutRoute._addFileChildren(
   authLayoutRouteChildren,
 )
+
+interface LegacyQuizzLayoutRouteChildren {
+  LegacyQuizzQuizzIdRoute: typeof LegacyQuizzQuizzIdRoute
+  LegacyQuizzIndexRoute: typeof LegacyQuizzIndexRoute
+}
+
+const LegacyQuizzLayoutRouteChildren: LegacyQuizzLayoutRouteChildren = {
+  LegacyQuizzQuizzIdRoute: LegacyQuizzQuizzIdRoute,
+  LegacyQuizzIndexRoute: LegacyQuizzIndexRoute,
+}
+
+const LegacyQuizzLayoutRouteWithChildren =
+  LegacyQuizzLayoutRoute._addFileChildren(LegacyQuizzLayoutRouteChildren)
 
 interface ManagerQuizzLayoutRouteChildren {
   ManagerQuizzQuizzIdRoute: typeof ManagerQuizzQuizzIdRoute
@@ -233,8 +363,11 @@ const ManagerQuizzLayoutRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   authLayoutRoute: authLayoutRouteWithChildren,
+  LegacyQuizzLayoutRoute: LegacyQuizzLayoutRouteWithChildren,
   ManagerQuizzLayoutRoute: ManagerQuizzLayoutRouteWithChildren,
+  LegacyConfigRoute: LegacyConfigRoute,
   ManagerConfigRoute: ManagerConfigRoute,
+  ManagerDashboardRoute: ManagerDashboardRoute,
   PartyGameIdRoute: PartyGameIdRoute,
   PartyManagerGameIdRoute: PartyManagerGameIdRoute,
 }
