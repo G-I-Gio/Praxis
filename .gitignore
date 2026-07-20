@@ -10,13 +10,7 @@ node_modules
 .secrets
 
 # Inutile pour le build Docker
-.github
 .vscode
-docs
-*.md
-README.md
-LICENSE
-compose.yml
 oxlint.config.ts
 .prettierignore
 .prettierrc.json
