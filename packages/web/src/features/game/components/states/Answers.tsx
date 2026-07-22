@@ -97,13 +97,13 @@ const Answers = ({
       </div>
 
       <div>
-        <div className="mx-auto mb-4 flex w-full max-w-7xl justify-between gap-1 px-2 text-lg font-bold text-white md:text-xl">
+        <div className="mx-auto mb-4 flex w-full max-w-7xl items-end justify-between gap-1 px-2 text-lg font-bold text-white md:text-xl">
           {time !== NO_TIME_LIMIT && (
-            <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
+            <div className="flex shrink-0 flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
               <span className="translate-y-1 text-sm">
                 {t("game:hud.time")}
               </span>
-              <span>{cooldown}</span>
+              <span className="tabular-nums">{cooldown}</span>
             </div>
           )}
           <div className="flex flex-col items-center rounded-lg bg-black/40 px-3 py-2">
@@ -111,10 +111,13 @@ const Answers = ({
               {totalAnswer}/{totalPlayer}
             </span>
             <div className="flex flex-wrap gap-1">
-              {answeredPlayers.map((p) => (
-                <Avatar key={p.id} username={p.username} avatar={p.avatar} size="sm" />
-              ))}
-            </div>
+				{answeredPlayers.map((p) => (
+				<div key={p.id} className="flex flex-col items-center">
+					<Avatar username={p.username} avatar={p.avatar} size="sm" />
+					<span className="text-xs">{p.username}</span>
+				</div>
+				))}
+			</div>
           </div>
         </div>
 

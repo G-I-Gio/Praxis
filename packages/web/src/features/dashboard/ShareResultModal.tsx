@@ -4,6 +4,7 @@ import { Search, UserMinus, UserPlus, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import toast from "react-hot-toast"
+import { useTranslation } from "react-i18next"
 import type { ManagerEntry } from "./useAllManagers"
 import type { ApiResultMeta } from "./useResultsApi"
 
@@ -26,6 +27,7 @@ const ShareResultModal = ({
   onClose,
   onSetVisibility,
 }: Props) => {
+  const { t } = useTranslation()
   const [sharedWith, setSharedWith] = useState<string[]>(result.shared_with ?? [])
   const [busy, setBusy] = useState(false)
   const [search, setSearch] = useState("")
@@ -55,8 +57,10 @@ const ShareResultModal = ({
       setSharedWith(nextShared)
       toast.success(
         nextShared.length > 0
-          ? `Partagé avec ${nextShared.length} personne${nextShared.length > 1 ? "s" : ""}`
-          : "Accès restreint (privé)",
+          ? nextShared.length === 1
+            ? t("manager:share.sharedWith", { count: nextShared.length })
+            : t("manager:share.sharedWithPlural", { count: nextShared.length })
+          : t("manager:share.restricted"),
       )
     } catch (e) {
       toast.error((e as Error).message)
@@ -76,10 +80,9 @@ const ShareResultModal = ({
     >
       <div className="bg-background flex max-h-[80svh] w-full max-w-sm flex-col rounded-xl p-5 shadow-xl">
 
-        {/* Header */}
         <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-foreground font-semibold">Partage</p>
+            <p className="text-foreground font-semibold">{t("manager:share.title")}</p>
             <p className="text-muted-foreground truncate text-xs">{result.subject}</p>
           </div>
           <button
@@ -90,14 +93,13 @@ const ShareResultModal = ({
           </button>
         </div>
 
-        {/* A accès */}
         <div className="mb-4 shrink-0">
           <p className="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wide">
-            A accès ({hasAccess.length})
+            {t("manager:share.hasAccess", { count: hasAccess.length })}
           </p>
           {hasAccess.length === 0 ? (
             <p className="text-muted-foreground text-xs italic">
-              Personne — le résultat est privé
+              {t("manager:share.nobody", { subject: result.subject })}
             </p>
           ) : (
             <ul className="max-h-32 space-y-1.5 overflow-y-auto pr-0.5">
@@ -111,7 +113,7 @@ const ShareResultModal = ({
                     className="text-muted-foreground hover:text-red-500 rounded-sm p-1 transition-colors"
                     onClick={handleRemove(m.id)}
                     disabled={busy}
-                    title="Retirer l'accès"
+                    title={t("manager:share.removeTitle")}
                   >
                     <UserMinus className="size-4" />
                   </button>
@@ -123,20 +125,18 @@ const ShareResultModal = ({
 
         <hr className="text-muted mb-4 shrink-0 border" />
 
-        {/* Ajouter */}
         <div className="flex min-h-0 flex-1 flex-col">
           <p className="text-muted-foreground mb-2 shrink-0 text-xs font-semibold uppercase tracking-wide">
-            Ajouter un accès
+            {t("manager:share.addAccess")}
           </p>
 
-          {/* Recherche */}
           <div className="relative mb-2 shrink-0">
             <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
             <Input
               variant="sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un compte…"
+              placeholder={t("manager:share.searchPlaceholder")}
               className="w-full pl-7"
             />
           </div>
@@ -145,8 +145,8 @@ const ShareResultModal = ({
             {canAdd.length === 0 ? (
               <p className="text-muted-foreground py-2 text-center text-xs italic">
                 {search
-                  ? `Aucun résultat pour "${search}"`
-                  : "Tous les comptes ont déjà accès"}
+                  ? t("manager:share.noResult", { search })
+                  : t("manager:share.allHaveAccess")}
               </p>
             ) : (
               canAdd.map((m) => (
@@ -159,7 +159,7 @@ const ShareResultModal = ({
                     className="text-muted-foreground hover:text-primary rounded-sm p-1 transition-colors"
                     onClick={handleAdd(m.id)}
                     disabled={busy}
-                    title="Donner l'accès"
+                    title={t("manager:share.addTitle")}
                   >
                     <UserPlus className="size-4" />
                   </button>
@@ -173,7 +173,7 @@ const ShareResultModal = ({
           className="bg-accent text-accent-foreground mt-4 shrink-0 w-full"
           onClick={onClose}
         >
-          Fermer
+          {t("manager:share.close")}
         </Button>
       </div>
     </div>

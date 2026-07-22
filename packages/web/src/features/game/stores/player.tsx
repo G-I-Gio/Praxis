@@ -35,6 +35,7 @@ interface PlayerStore<T> {
 
   setPlayers: (_players: PlayerSummary[]) => void
   addOrUpdatePlayer: (_player: PlayerSummary) => void
+  removePlayer: (_id: string) => void
 
   setAnsweredPlayers: (_players: PlayerSummary[]) => void
   addAnsweredPlayer: (_player: PlayerSummary) => void
@@ -78,6 +79,11 @@ export const usePlayerStore = create<PlayerStore<StatusDataMap>>((set) => ({
         ...state.players.filter((p) => p.id !== player.id),
         player,
       ],
+    })),
+
+  removePlayer: (id) =>
+    set((state) => ({
+      players: state.players.filter((p) => p.id !== id),
     })),
 
   setAnsweredPlayers: (answeredPlayers) => set({ answeredPlayers }),

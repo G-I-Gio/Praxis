@@ -4,6 +4,7 @@ import Input from "@razzia/web/components/Input"
 import { Check, Pencil, Plus, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
 import toast from "react-hot-toast"
+import { useTranslation } from "react-i18next"
 import type { ApiManager } from "./useManagersApi"
 
 interface Props {
@@ -36,6 +37,7 @@ const DashboardManagers = ({
   onUpdate,
   onDelete,
 }: Props) => {
+  const { t } = useTranslation()
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm())
@@ -53,7 +55,7 @@ const DashboardManagers = ({
 
   const handleCreate = async () => {
     if (!form.username || !form.password) {
-      toast.error("Identifiant et mot de passe requis")
+      toast.error(t("manager:managers.identifierRequired"))
       return
     }
     setBusy(true)
@@ -61,7 +63,7 @@ const DashboardManagers = ({
       await onCreate(form.username, form.password, form.role)
       setCreating(false)
       setForm(emptyForm())
-      toast.success(`Compte "${form.username}" créé`)
+      toast.success(t("manager:managers.created", { name: form.username }))
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -84,7 +86,7 @@ const DashboardManagers = ({
       if (editForm.password) patch.password = editForm.password
       await onUpdate(id, patch)
       setEditingId(null)
-      toast.success("Compte mis à jour")
+      toast.success(t("manager:managers.updated"))
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -94,14 +96,14 @@ const DashboardManagers = ({
 
   const handleDelete = (id: string, username: string) => () => {
     onDelete(id)
-      .then(() => toast.success(`Compte "${username}" supprimé`))
+      .then(() => toast.success(t("manager:managers.created", { name: username })))
       .catch((e: Error) => toast.error(e.message))
   }
 
   if (loading) {
     return (
       <div className="text-muted-foreground my-8 text-center text-sm">
-        Chargement…
+        {t("common:loading")}
       </div>
     )
   }
@@ -115,7 +117,7 @@ const DashboardManagers = ({
           variant="sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher un compte…"
+          placeholder={t("manager:managers.searchPlaceholder")}
           className="w-full pl-7"
         />
       </div>
@@ -128,17 +130,16 @@ const DashboardManagers = ({
           onClick={() => { setCreating(true); setEditingId(null) }}
         >
           <Plus className="size-4" />
-          Créer un compte
+          {t("manager:managers.createAccount")}
         </Button>
       )}
 
       {/* Formulaire de création */}
       {creating && (
         <div className="border-accent rounded-lg border-2 p-3 flex flex-col gap-2">
-          <p className="text-foreground text-sm font-semibold">Nouveau compte</p>
           <Input
             variant="sm"
-            placeholder="Identifiant"
+            placeholder={t("manager:managers.identifierPlaceholder")}
             value={form.username}
             onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
             autoFocus
@@ -146,7 +147,7 @@ const DashboardManagers = ({
           <Input
             variant="sm"
             type="password"
-            placeholder="Mot de passe (min. 8 caractères)"
+            placeholder={t("manager:managers.passwordPlaceholder")}
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
           />
@@ -168,7 +169,7 @@ const DashboardManagers = ({
           <div className="flex gap-2">
             <Button size="sm" className="flex-1" onClick={handleCreate} disabled={busy}>
               <Check className="size-3.5" />
-              Créer
+              {t("manager:managers.createBtn")}
             </Button>
             <Button
               size="sm"
@@ -190,7 +191,7 @@ const DashboardManagers = ({
               <div className="border-primary rounded-lg border-2 p-3 flex flex-col gap-2">
                 <Input
                   variant="sm"
-                  placeholder="Identifiant"
+                  placeholder={t("manager:managers.identifierPlaceholder")}
                   value={editForm.username}
                   onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
                   autoFocus
@@ -198,7 +199,7 @@ const DashboardManagers = ({
                 <Input
                   variant="sm"
                   type="password"
-                  placeholder="Nouveau mot de passe (laisser vide = inchangé)"
+                  placeholder={t("manager:managers.newPasswordPlaceholder")}
                   value={editForm.password}
                   onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
                 />
@@ -220,7 +221,7 @@ const DashboardManagers = ({
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1" onClick={() => handleUpdate(m.id)} disabled={busy}>
                     <Check className="size-3.5" />
-                    Enregistrer
+                    {t("common:save")}
                   </Button>
                   <Button
                     size="sm"
@@ -238,7 +239,7 @@ const DashboardManagers = ({
                   <p className="text-foreground truncate text-sm font-medium">
                     {m.username}
                     {m.id === currentManagerId && (
-                      <span className="text-primary ml-1.5 text-xs">(vous)</span>
+                      <span className="text-primary ml-1.5 text-xs">({t("common:you") ?? "vous"})</span>
                     )}
                   </p>
                   <p className="text-muted-foreground text-xs">{ROLE_LABEL[m.role]}</p>
@@ -247,7 +248,7 @@ const DashboardManagers = ({
                   <button
                     className="text-accent-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
                     onClick={() => startEdit(m)}
-                    title="Modifier"
+                    title={t("manager:managers.editTitle")}
                   >
                     <Pencil className="size-3.5" />
                   </button>
@@ -258,9 +259,9 @@ const DashboardManagers = ({
                           <Trash2 className="size-3.5 stroke-red-500" />
                         </button>
                       }
-                      title="Supprimer le compte"
-                      description={`Supprimer "${m.username}" ? Cette action est irréversible.`}
-                      confirmLabel="Supprimer"
+                      title={t("manager:managers.deleteTitle")}
+                      description={t("manager:quizz.deleteConfirm", { name: m.username })}
+                      confirmLabel={t("common:delete")}
                       onConfirm={handleDelete(m.id, m.username)}
                     />
                   )}
@@ -272,7 +273,7 @@ const DashboardManagers = ({
 
         {filteredManagers.length === 0 && (
           <p className="text-muted-foreground my-8 text-center text-sm">
-            {search ? `Aucun résultat pour "${search}"` : "Aucun compte manager"}
+            {search ? t("manager:managers.noResult", { search }) : t("manager:managers.none")}
           </p>
         )}
       </div>

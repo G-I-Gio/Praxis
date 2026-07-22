@@ -38,11 +38,11 @@
     "mediaUrlPlaceholder": "Enter URL...",
     "placeholder": "Start typing your question..."
   },
-  "quizzSaved": "Quizz saved successfully",
-  "quizzUpdated": "Quizz updated successfully",
+  "quizzSaved": "Quiz saved successfully",
+  "quizzUpdated": "Quiz updated successfully",
   "questionType": {
     "single": "Single choice",
     "multi": "Multiple choice"
   },
-  "titleQuizzPlaceholder": "Quizz title..."
+  "titleQuizzPlaceholder": "Quiz title..."
 }

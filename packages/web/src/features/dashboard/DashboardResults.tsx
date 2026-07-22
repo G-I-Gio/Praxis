@@ -4,8 +4,8 @@ import Input from "@razzia/web/components/Input"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
 import ShareResultModal from "@razzia/web/features/dashboard/ShareResultModal"
 import { useAllManagers } from "@razzia/web/features/dashboard/useAllManagers"
-import { Globe, Lock, Search, Share2, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Globe, Lock, Pencil, Search, Share2, Trash2 } from "lucide-react"
+import { useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 import type { ApiResultMeta } from "./useResultsApi"
@@ -21,6 +21,7 @@ interface Props {
     _v: "private" | "public" | "shared",
     _sharedWith?: string[],
   ) => Promise<void>
+  onRename: (_id: string, _subject: string) => Promise<void>
 }
 
 const formatDate = (iso: string) => {
@@ -32,13 +33,12 @@ const formatDate = (iso: string) => {
   })} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
 }
 
-const VISIBILITY_LABEL: Record<"private" | "public" | "shared", string> = {
-  private: "Privé",
-  public: "Public",
-  shared: "Partagé",
+const VisibilityIcon = ({ v }: { v: "private" | "public" | "shared" }) => {
+  if (v === "public")  return <Globe   className="size-3.5" />
+  if (v === "shared")  return <Share2  className="size-3.5" />
+  return                      <Lock    className="size-3.5" />
 }
 
-// Cycle Privé ↔ Public uniquement (Partagé se gère via l'icône dédiée)
 const NEXT_VISIBILITY: Record<
   "private" | "public" | "shared",
   "private" | "public"
@@ -48,12 +48,6 @@ const NEXT_VISIBILITY: Record<
   shared:  "private",
 }
 
-const VisibilityIcon = ({ v }: { v: "private" | "public" | "shared" }) => {
-  if (v === "public")  return <Globe   className="size-3.5" />
-  if (v === "shared")  return <Share2  className="size-3.5" />
-  return                      <Lock    className="size-3.5" />
-}
-
 const DashboardResults = ({
   results,
   loading,
@@ -61,18 +55,26 @@ const DashboardResults = ({
   onDelete,
   onGetResult,
   onSetVisibility,
+  onRename,
 }: Props) => {
+  const { t } = useTranslation()
   const [selectedResult, setSelectedResult] = useState<GameResult | null>(null)
   const [sharingResult, setSharingResult] = useState<ApiResultMeta | null>(null)
   const [search, setSearch] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Filtrage par nom de quiz ou date DD/MM/YYYY
+  const VISIBILITY_LABEL: Record<"private" | "public" | "shared", string> = {
+    private: t("manager:result.visibility.private"),
+    public:  t("manager:result.visibility.public"),
+    shared:  t("manager:result.visibility.shared"),
+  }
+
   const filteredResults = results.filter((r) => {
     if (!search) return true
     const q = search.toLowerCase()
-    // Recherche par nom de quiz
     if (r.subject.toLowerCase().includes(q)) return true
-    // Recherche par date DD/MM/YYYY — convertit la date ISO en DD/MM/YYYY pour comparaison
     const d = new Date(r.date)
     const dd = String(d.getDate()).padStart(2, "0")
     const mm = String(d.getMonth() + 1).padStart(2, "0")
@@ -81,13 +83,30 @@ const DashboardResults = ({
     return formatted.includes(q)
   })
   const { managers: allManagers, reload: reloadManagers } = useAllManagers()
-  const { t } = useTranslation()
 
   const handleOpen = async (id: string) => {
     try {
       setSelectedResult(await onGetResult(id))
     } catch (e) {
       toast.error((e as Error).message)
+    }
+  }
+
+  const startEdit = (r: ApiResultMeta) => {
+    setEditingId(r.id)
+    setEditValue(r.subject)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  const commitEdit = async () => {
+    if (!editingId || !editValue.trim()) { setEditingId(null); return }
+    try {
+      await onRename(editingId, editValue.trim())
+      toast.success(t("manager:result.renamed"))
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setEditingId(null)
     }
   }
 
@@ -99,28 +118,27 @@ const DashboardResults = ({
     (id: string, current: "private" | "public" | "shared") => () => {
       const next = NEXT_VISIBILITY[current]
       onSetVisibility(id, next)
-        .then(() => toast.success(`Visibilité → ${VISIBILITY_LABEL[next]}`))
+        .then(() => toast.success(t("manager:result.visibilityUpdated", { label: VISIBILITY_LABEL[next] })))
         .catch((e: Error) => toast.error(e.message))
     }
 
   if (loading) {
     return (
       <div className="text-muted-foreground my-8 text-center text-sm">
-        Chargement…
+        {t("common:loading")}
       </div>
     )
   }
 
   return (
     <>
-      {/* Recherche par nom ou date DD/MM/YYYY */}
       <div className="relative mb-3 shrink-0">
         <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
         <Input
           variant="sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher par nom ou date (JJ/MM/AAAA)…"
+          placeholder={t("manager:result.searchPlaceholder")}
           className="w-full pl-7"
         />
       </div>
@@ -133,40 +151,62 @@ const DashboardResults = ({
               key={r.id}
               className="border-accent flex h-14 w-full items-center justify-between rounded-md border-2 p-3"
             >
-              {/* Infos cliquables → ouvre ResultModal */}
-              <button
-                className="min-w-0 flex-1 text-left"
-                onClick={() => handleOpen(r.id)}
-              >
-                <p className="text-foreground truncate font-medium">
-                  {r.subject}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {formatDate(r.date)} ·{" "}
-                  {t("manager:result.playerCount", { count: r.playerCount })}
-                </p>
-              </button>
+              <div className="min-w-0 flex-1">
+                {editingId === r.id ? (
+                  <Input
+                    ref={inputRef}
+                    variant="sm"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit()
+                      if (e.key === "Escape") setEditingId(null)
+                    }}
+                    className="w-full"
+                  />
+                ) : (
+                  <button
+                    className="min-w-0 w-full text-left"
+                    onClick={() => handleOpen(r.id)}
+                  >
+                    <p className="text-foreground truncate font-medium">
+                      {r.subject}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {formatDate(r.date)} ·{" "}
+                      {t("manager:result.playerCount", { count: r.playerCount })}
+                    </p>
+                  </button>
+                )}
+              </div>
 
               <div className="flex shrink-0 items-center gap-0.5">
                 {isOwner && (
                   <>
-                    {/* Visibilité Privé ↔ Public */}
                     <button
                       className="text-muted-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
-                      title={`Visibilité : ${VISIBILITY_LABEL[r.visibility]} (cliquer pour basculer Privé/Public)`}
+                      title={t("manager:result.renameTitle")}
+                      onClick={() => startEdit(r)}
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+
+                    <button
+                      className="text-muted-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
+                      title={t("manager:result.visibility.toggleTitle", { label: VISIBILITY_LABEL[r.visibility] })}
                       onClick={handleToggleVisibility(r.id, r.visibility)}
                     >
                       <VisibilityIcon v={r.visibility} />
                     </button>
 
-                    {/* Partage avec des managers spécifiques */}
                     <button
                       className={`rounded-sm p-2 transition-colors ${
                         r.visibility === "shared"
                           ? "text-primary hover:bg-primary/10"
                           : "text-muted-foreground hover:bg-accent-foreground/10"
                       }`}
-                      title="Gérer le partage"
+                      title={t("manager:result.shareTitle")}
                       onClick={() => {
                         reloadManagers()
                         setSharingResult(r)
@@ -175,7 +215,6 @@ const DashboardResults = ({
                       <Share2 className="size-3.5" />
                     </button>
 
-                    {/* Suppression */}
                     <AlertDialog
                       trigger={
                         <button className="rounded-sm p-2 hover:bg-red-600/10">
@@ -199,13 +238,12 @@ const DashboardResults = ({
         {filteredResults.length === 0 && (
           <p className="text-muted-foreground my-8 text-center text-sm">
             {search
-              ? `Aucun résultat pour "${search}"`
+              ? t("manager:result.searchNoResult", { search })
               : t("manager:result.none")}
           </p>
         )}
       </div>
 
-      {/* Modale résultat */}
       {selectedResult && (
         <ResultModal
           result={selectedResult}
@@ -213,7 +251,6 @@ const DashboardResults = ({
         />
       )}
 
-      {/* Modale de partage */}
       {sharingResult && (
         <ShareResultModal
           result={sharingResult}
@@ -222,7 +259,6 @@ const DashboardResults = ({
           onClose={() => setSharingResult(null)}
           onSetVisibility={async (id, v, sharedWith) => {
             await onSetVisibility(id, v, sharedWith)
-            // Mettre à jour la référence locale pour que la modale reflète le nouvel état
             sharingResult.shared_with = sharedWith ?? []
             sharingResult.visibility = v
           }}

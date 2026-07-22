@@ -1,6 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
 import GameWrapper from "@razzia/web/features/game/components/GameWrapper"
+import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import {
   socketClient,
   useEvent,
@@ -18,6 +19,7 @@ import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const ManagerGamePage = () => {
+  const { setAnsweredPlayers } = usePlayerStore()
   const navigate = useNavigate()
   const { gameId: gameIdParam } = useParams({ from: "/party/manager/$gameId" })
   const { socket } = useSocket()
@@ -28,6 +30,9 @@ const ManagerGamePage = () => {
 
   useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {
+	  if (name === STATUS.SELECT_ANSWER) {
+        setAnsweredPlayers([])
+      }
       setStatus(name, data)
     }
   })
@@ -46,6 +51,9 @@ const ManagerGamePage = () => {
       players,
       currentQuestion,
     }) => {
+	  if (name === STATUS.SELECT_ANSWER) {
+        setAnsweredPlayers([])
+      }
       setGameId(reconnectGameId)
       setStatus(reconnectStatus.name, reconnectStatus.data)
       setPlayers(players)

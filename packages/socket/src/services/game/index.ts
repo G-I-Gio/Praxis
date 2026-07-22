@@ -8,7 +8,7 @@ import {
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
 import { saveResult } from "@razzia/socket/services/config"
-import { saveResultDb } from "@razzia/socket/services/database"
+import { saveResultDb, resolveMediaUrl, extractMediaRefs } from "@razzia/socket/services/database"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { RoundManager } from "@razzia/socket/services/game/round-manager"
@@ -32,6 +32,9 @@ class Game {
   private readonly playerManager: PlayerManager
   private readonly round: RoundManager
   private readonly cooldown: CooldownTimer
+
+  // Hashes autorisés pour la route /media/:gameId/:hash.:ext
+  readonly allowedMediaHashes: Set<string> = new Set()
 
   private lastBroadcastStatus: {
     name: Status
@@ -77,8 +80,39 @@ class Game {
           saveResultDb(result, managerId)
       : saveResult
 
+    // Résoudre les URLs médias et pré-calculer les hashes autorisés
+    const questions = quizz.questions as unknown[]
+    const mediaIds = extractMediaRefs(questions)
+    for (const mediaId of mediaIds) {
+      const resolved = resolveMediaUrl(mediaId)
+      if (resolved) this.allowedMediaHashes.add(resolved.hash)
+    }
+
+    // Substituer media:<uuid> → /media/<gameId>/<hash>.<ext> dans les questions envoyées aux joueurs
+    const resolvedQuizz: Quizz = {
+      ...quizz,
+      questions: (quizz.questions as unknown[]).map((q) => {
+        const question = q as Record<string, unknown>
+        const media = question.media as { url?: string; type?: string } | undefined
+        if (media?.url?.startsWith("media:")) {
+          const mediaId = media.url.slice("media:".length)
+          const resolved = resolveMediaUrl(mediaId)
+          if (resolved) {
+            return {
+              ...question,
+              media: {
+                ...media,
+                url: `/media/${this.gameId}/${resolved.hash}.${resolved.ext}`,
+              },
+            }
+          }
+        }
+        return question
+      }) as Quizz["questions"],
+    }
+
     this.round = new RoundManager({
-      quizz,
+      quizz: resolvedQuizz,
       players: this.playerManager,
       cooldown: this.cooldown,
       io,
@@ -99,7 +133,11 @@ class Game {
       inviteCode: this.inviteCode,
     })
 
-    logger.info("New game created", { inviteCode: this.inviteCode, subject: quizz.subject })
+    logger.info("New game created", {
+      inviteCode: this.inviteCode,
+      subject: quizz.subject,
+      mediaHashes: this.allowedMediaHashes.size,
+    })
   }
 
   get manager() {
@@ -242,6 +280,21 @@ class Game {
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
 
+    // Informer les autres joueurs du changement de socket.id :
+    // le store déduplique par id — sans ça l'ancienne entrée (ancien id) et
+    // la nouvelle (nouvel id) coexistent → doublon d'avatar dans la salle.
+    socket.to(this.gameId).emit(EVENTS.GAME.PLAYER_JOINED, {
+      id: socket.id,
+      username: player.username,
+      avatar: player.avatar,
+    })
+    // Informer le manager : retirer l'ancien id, enregistrer le nouveau
+    this.io.to(this._manager.id).emit(EVENTS.MANAGER.REMOVE_PLAYER, oldSocketId)
+    this.io.to(this._manager.id).emit(EVENTS.MANAGER.NEW_PLAYER, {
+      ...player,
+      id: socket.id,
+    })
+
     logger.info("Player reconnected to game", { player: player.username, inviteCode: this.inviteCode })
   }
 
@@ -265,6 +318,8 @@ class Game {
   setPlayerDisconnected(socketId: string) {
     this.playerManager.setDisconnected(socketId)
     this.playerManager.broadcastCount()
+    // Retirer l'avatar du joueur déconnecté chez tous les autres joueurs dans la salle
+    this.io.to(this.gameId).emit(EVENTS.GAME.PLAYER_LEFT, socketId)
   }
 
   // Game flow

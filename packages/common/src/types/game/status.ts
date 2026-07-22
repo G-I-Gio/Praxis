@@ -45,6 +45,10 @@ export interface CommonStatusDataMap {
     rank: number
     aheadOfMe: string | null
   }
+  SHOW_LEADERBOARD: {
+    oldLeaderboard: Player[]
+    leaderboard: Player[]
+  }
   WAIT: { text: string }
   FINISHED: { subject: string; top: Player[]; rank?: number }
 }
@@ -58,7 +62,6 @@ interface ManagerExtraStatus {
     answers: string[]
     media?: QuestionMedia
   }
-  SHOW_LEADERBOARD: { oldLeaderboard: Player[]; leaderboard: Player[] }
 }
 
 export type PlayerStatusDataMap = CommonStatusDataMap

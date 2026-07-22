@@ -13,7 +13,9 @@
     "notFound": "No se encontró ningún cuestionario",
     "pleaseCreate": "Por favor crea un cuestionario primero",
     "pleaseSelect": "Por favor selecciona un cuestionario",
-    "startGame": "Iniciar juego"
+    "startGame": "Iniciar juego",
+    "searchPlaceholder": "Buscar un cuestionario…",
+    "invalidJson": "Archivo JSON inválido"
   },
   "result": {
     "delete": "Eliminar resultado",
@@ -35,13 +37,168 @@
       "points": "Puntos"
     },
     "playerCount": "{{count}} jugador(es)",
-    "timeLimitSuffix": "s de tiempo límite"
+    "timeLimitSuffix": "s de tiempo límite",
+    "renamed": "Resultado renombrado",
+    "visibility": {
+      "private": "Privado",
+      "public": "Público",
+      "shared": "Compartido",
+      "toggleTitle": "Visibilidad: {{label}} (clic para alternar Privado/Público)"
+    },
+    "searchPlaceholder": "Buscar por nombre o fecha (DD/MM/AAAA)…",
+    "searchNoResult": "Sin resultados para \"{{search}}\"",
+    "renameTitle": "Renombrar",
+    "shareTitle": "Gestionar compartición",
+    "visibilityUpdated": "Visibilidad → {{label}}"
   },
   "tabs": {
     "play": "Jugar",
     "quizz": "Cuestionario",
     "results": "Resultados",
-    "managers": "Accounts",
-    "appearance": "Appearance"
+    "managers": "Cuentas",
+    "appearance": "Apariencia"
+  },
+  "dashboard": {
+    "sessionExpired": "Sesión expirada, por favor vuelve a iniciar sesión",
+    "networkError": "Error de red",
+    "loggedOut": "Sesión cerrada"
+  },
+  "managers": {
+    "searchPlaceholder": "Buscar una cuenta…",
+    "updated": "Cuenta actualizada",
+    "created": "Cuenta \"{{name}}\" creada",
+    "identifierRequired": "El nombre de usuario y la contraseña son obligatorios",
+    "noResult": "Sin resultados para \"{{search}}\"",
+    "none": "No hay cuentas de administrador",
+    "identifierPlaceholder": "Nombre de usuario",
+    "passwordPlaceholder": "Contraseña (mín. 8 caracteres)",
+    "newPasswordPlaceholder": "Nueva contraseña (dejar vacío = sin cambios)",
+    "editTitle": "Editar",
+    "deleteTitle": "Eliminar cuenta",
+    "createAccount": "Crear cuenta",
+    "createBtn": "Crear"
+  },
+  "share": {
+    "title": "Compartir",
+    "hasAccess": "Con acceso ({{count}})",
+    "nobody": "Nadie — {{subject}} es privado/a",
+    "addAccess": "Añadir acceso",
+    "searchPlaceholder": "Buscar una cuenta…",
+    "noResult": "Sin resultados para \"{{search}}\"",
+    "allHaveAccess": "Todas las cuentas ya tienen acceso",
+    "removeTitle": "Quitar acceso",
+    "addTitle": "Conceder acceso",
+    "sharedWith": "Compartido con {{count}} persona",
+    "sharedWithPlural": "Compartido con {{count}} personas",
+    "restricted": "Acceso restringido (privado)",
+    "close": "Cerrar"
+  },
+  "appearance": {
+    "updated": "{{label}} actualizado",
+    "reset": "{{label}} restablecido",
+    "identitySaved": "Identidad guardada",
+    "colorsSaved": "Colores guardados",
+    "fontSaved": "Fuente guardada",
+    "themeApplied": "Tema aplicado a todos los clientes",
+    "resetDefault": "Restablecer por defecto",
+    "default": "Predeterminado",
+    "choose": "Elegir",
+    "applyTitle": "Aplicar a todos los clientes conectados",
+    "applyDesc": "Recarga el tema en todos los navegadores conectados sin reiniciar.",
+    "applyButton": "Guardar y aplicar",
+    "section": {
+      "identity": "Identidad",
+      "colors": "Colores",
+      "visual": "Visual",
+      "typography": "Tipografia",
+      "sounds": "Sonidos"
+    },
+    "field": {
+      "appName": "Nombre de la aplicacion",
+      "logo": "Logo",
+      "favicon": "Favicon",
+      "primaryColor": "Color principal",
+      "backgroundColor": "Color de fondo",
+      "answerColor": "Respuesta {{letter}}",
+      "background": "Imagen de fondo (interfaz de juego)",
+      "fontFamily": "Familia de fuente",
+      "fontUrl": "URL de hoja de estilos (opcional)"
+    },
+    "audio": {
+      "answersMusic": "Musica durante las respuestas",
+      "answersSound": "Sonido de validacion de respuesta",
+      "showSound": "Sonido de visualizacion de pregunta",
+      "resultsSound": "Sonido de visualizacion de resultados",
+      "boumpSound": "Sonido de transicion",
+      "podiumThree": "Podio - 3er lugar",
+      "podiumSecond": "Podio - 2do lugar",
+      "podiumFirst": "Podio - 1er lugar",
+      "podiumSnearRoll": "Podio - redoble de caja"
+    }
+  },
+  "password": {
+    "changeTitle": "Cambiar contraseña",
+    "currentLabel": "Contraseña actual",
+    "newLabel": "Nueva contraseña",
+    "confirmLabel": "Confirmar nueva contraseña",
+    "minLength": "Mínimo 8 caracteres",
+    "saving": "Guardando…",
+    "currentRequired": "La contraseña actual es obligatoria",
+    "newRequired": "La nueva contraseña es obligatoria",
+    "tooShort": "La nueva contraseña debe tener al menos 8 caracteres",
+    "mustDiffer": "La nueva contraseña debe ser diferente de la actual",
+    "mismatch": "Las contraseñas no coinciden",
+    "networkError": "Error de red",
+    "successTitle": "Contraseña cambiada",
+    "successBody": "Tu contraseña ha sido actualizada con éxito.",
+    "sessionsActive_one": "Tienes {{count}} otra sesión activa. ¿Deseas cerrarla?",
+    "sessionsActive_other": "Tienes {{count}} otras sesiones activas. ¿Deseas cerrarlas?",
+    "disconnecting": "Cerrando sesión…",
+    "disconnectAll": "Cerrar todas las demás sesiones",
+    "keepSessions": "Mantener sesiones activas",
+    "sessionsDisconnected_one": "{{count}} sesión cerrada",
+    "sessionsDisconnected_other": "{{count}} sesiones cerradas",
+    "sessionsError": "Error al cerrar las sesiones",
+    "close": "Cerrar"
+  },
+  "media": {
+    "title": "Biblioteca de medios",
+    "manageButton": "Biblioteca de medios",
+    "tab": {
+      "mine": "Mis medios",
+      "shared": "Compartidos",
+      "public": "Públicos"
+    },
+    "upload": "Subir",
+    "uploading": "Subiendo…",
+    "uploaded": "Archivo subido",
+    "download": "Descargar",
+    "share": "Compartir",
+    "delete": "Eliminar",
+    "deleted": "Medio eliminado",
+    "deleteBlocked": "Este medio está en uso por cuestionarios — retíralo primero de todos los cuestionarios",
+    "deleteBlockedTitle": "Usado en {{count}} cuestionario(s)",
+    "visibilityUpdated": "Visibilidad actualizada",
+    "visibility": {
+      "private": "Privado",
+      "public": "Público",
+      "shared": "Compartido"
+    },
+    "searchPlaceholder": "Buscar por nombre…",
+    "noResult": "Sin resultados para «{{search}}»",
+    "empty": "No hay medios en esta biblioteca",
+    "selectHint": "Selecciona un medio para ver sus detalles",
+    "dropHint": "Arrastra y suelta un archivo aquí",
+    "addedOn": "Añadido el {{date}}",
+    "usedIn": "Usado en {{count}} cuestionario(s)",
+    "usedByOther": "Cuestionario de {{name}}",
+    "openLibrary": "Abrir biblioteca",
+    "libraryHint": "Selecciona un medio de tu biblioteca",
+    "uploadHint": "Sube un archivo (máx {{max}} MB)",
+    "editorTab": {
+      "url": "URL externa",
+      "library": "Biblioteca",
+      "upload": "Subir"
+    }
   }
 }

@@ -93,6 +93,14 @@ Full routes:
 | POST | `/api/branding/upload/:field` | Superadmin | Upload a file |
 | DELETE | `/api/branding/field/:field` | Superadmin | Reset a field to default |
 | POST | `/api/branding/apply` | Superadmin | Broadcast BRANDING.RELOAD |
+| GET | `/api/media` | Authenticated | List accessible media |
+| POST | `/api/media/upload` | Authenticated | Upload a media file |
+| GET | `/api/media/:id` | Read | Media metadata |
+| GET | `/api/media/:id/file` | Read | Inline stream (Range support) |
+| GET | `/api/media/:id/download` | Read | Forced download |
+| PATCH | `/api/media/:id/visibility` | Owner | Update visibility |
+| DELETE | `/api/media/:id` | Owner | Delete a media |
+| GET | `/media/:gameId/:hash.:ext` | Public | Media during active game (no auth) |
 
 ### SQLite storage for quizzes and results
 
@@ -189,6 +197,8 @@ The nginx body limit is automatically calculated at `MAX_UPLOAD_SIZE × 1.25` by
 | `packages/socket/src/services/http.ts` | Native HTTP server, all REST routes |
 | `packages/socket/src/services/health.ts` | Health service and startup state |
 | `packages/socket/src/services/logger.ts` | Structured JSON logger |
+| `packages/socket/src/services/media.ts` | Upload, magic bytes, SHA-256, Range stream, ZIP export/import |
+| `packages/socket/src/services/registry.ts` | Active game registry (authorised media hashes per game) |
 
 ### Docker
 | File | Role |
@@ -214,6 +224,9 @@ The nginx body limit is automatically calculated at `MAX_UPLOAD_SIZE × 1.25` by
 | `features/dashboard/ShareQuizModal.tsx` | Quiz sharing modal with search |
 | `features/dashboard/ChangePasswordModal.tsx` | Password change modal |
 | `features/dashboard/PasswordSuccessModal.tsx` | Success modal + session management |
+| `features/dashboard/MediaLibraryModal.tsx` | Media library (upload, selection, visibility) |
+| `features/dashboard/ShareMediaModal.tsx` | Media sharing modal with search |
+| `features/dashboard/useMediaApi.ts` | Media REST CRUD hook |
 
 ---
 
@@ -233,6 +246,9 @@ The nginx body limit is automatically calculated at `MAX_UPLOAD_SIZE × 1.25` by
 | `packages/web/src/pages/manager/quizz/*.tsx` | `apiMode` (REST save) |
 | `packages/web/src/pages/party/manager/$gameId.tsx` | End-of-game redirect → `/manager/dashboard` |
 | `packages/web/src/features/quizz/components/QuizzEditorHeader.tsx` | REST mode added alongside Socket.IO mode |
+| `packages/web/src/features/quizz/components/QuizzEditorCard.tsx` | Resolve `media:<uuid>` → `/api/media/<uuid>/file` in the sidebar |
+| `packages/web/src/features/quizz/components/QuestionEditor/QuestionEditorMedia.tsx` | Media selection from library or external URL |
+| `packages/web/src/components/QuestionMedia.tsx` | Full-screen media display during games |
 | `packages/web/src/pages/(auth)/manager/index.tsx` | Username/password login instead of global password |
 | `packages/web/src/features/game/utils/constants.ts` | `SFX` → dynamic `getSFX()` |
 | `docker/nginx.conf` | Proxy `/auth/`, `/api/` (20 MB max), `/branding/`, `/health` |
@@ -245,7 +261,7 @@ The nginx body limit is automatically calculated at `MAX_UPLOAD_SIZE × 1.25` by
 
 **No JWT** — SQLite sessions (opaque tokens) are simpler, revocable at any time, and require no secret to manage.
 
-**No granular permissions on shared quizzes** — sharing is read-only for non-owners. If an owner wants a colleague to edit their quiz, they can duplicate it via import/export. This avoids disproportionate rights management complexity.
+**No granular permissions on shared quizzes** — sharing is read-only for non-owners. If an owner wants a colleague to edit their quiz, they can duplicate it via import/export. This avoids disproportionate rights management complexity. A `shared_with_write` field is planned in the roadmap (iteration C).
 
 **No multi-instance** — game state is in memory (Razzia's choice preserved). Load-balancing across multiple instances would break the game.
 

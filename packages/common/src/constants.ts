@@ -11,6 +11,7 @@ export const EVENTS = {
     UPDATE_QUESTION: "game:updateQuestion",
     PLAYER_ANSWER: "game:playerAnswer",
     PLAYER_JOINED: "game:playerJoined",
+    PLAYER_LEFT: "game:playerLeft",
     PLAYER_LIST: "game:playerList",
     PLAYER_ANSWERED: "game:playerAnswered",
     CREATE: "game:create",

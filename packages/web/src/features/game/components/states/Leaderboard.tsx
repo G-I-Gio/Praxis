@@ -1,4 +1,4 @@
-import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
 import Fire from "@razzia/web/features/game/components/icons/Fire"
 import Avatar from "@razzia/web/features/game/components/Avatar"
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react"
@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 interface Props {
-  data: ManagerStatusDataMap["SHOW_LEADERBOARD"]
+  data: PlayerStatusDataMap["SHOW_LEADERBOARD"]
 }
 
 const AnimatedPoints = ({ from, to }: { from: number; to: number }) => {

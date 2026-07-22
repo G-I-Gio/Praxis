@@ -106,7 +106,7 @@ const QuizzEditorHeaderApi = () => {
       toast.success(quizzId ? t("quizz:quizzUpdated") : t("quizz:quizzSaved"))
       navigate({ to: "/manager/dashboard" })
     } catch {
-      toast.error("Erreur réseau")
+      toast.error(t("manager:dashboard.networkError"))
     } finally {
       setSaving(false)
     }

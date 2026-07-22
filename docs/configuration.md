@@ -19,7 +19,10 @@ Elles se définissent dans le fichier `.env` (copié depuis `.env.example`).
 | `PORT` | `3000` | Port exposé sur l'hôte |
 | `PUID` | `1000` | UID Unix sous lequel le conteneur s'exécute |
 | `PGID` | `1000` | GID Unix sous lequel le conteneur s'exécute |
-| `MAX_UPLOAD_SIZE` | `10` | Taille max des uploads en Mo (logo, sons…) |
+| `MAX_UPLOAD_SIZE` | `10` | Taille max des fichiers branding en Mo (logo, sons…) |
+| `MAX_MEDIA_SIZE` | `20` | Taille max par fichier média de quiz en Mo |
+| `COOKIE_SECURE` | `true` | Flag `Secure` sur le cookie de session (mettre `false` en HTTP local) |
+| `KNOWN_PROXIES` | *(vide)* | IPs/CIDRs des reverse-proxies de confiance, séparés par des virgules |
 | `LOG_LEVEL` | `info` | Niveau de log : `debug` \| `info` \| `warn` \| `error` |
 | `LOG_FORMAT` | `json` | Format des logs : `json` (production) \| `pretty` (dev) |
 
@@ -98,6 +101,9 @@ Tables principales :
 - `manager_sessions` — tokens de session actifs
 - `quizzes` — quiz créés via le dashboard (avec visibilité et propriétaire)
 - `results` — résultats de parties (avec visibilité et propriétaire)
+- `media` — métadonnées des médias (propriétaire, visibilité, nom original)
+- `media_files` — fichiers physiques dédupliqués (hash SHA-256, extension, taille)
+- `quiz_media` — association quiz ↔ médias référencés (protège contre la suppression)
 - `audit_log` — journal des actions sensibles
 - `settings` — paramètres globaux
 
@@ -117,6 +123,11 @@ PGID=1000
 
 # Uploads
 MAX_UPLOAD_SIZE=10
+MAX_MEDIA_SIZE=20
+
+# Sécurité
+# COOKIE_SECURE=false   # Décommenter uniquement pour du développement local HTTP
+# KNOWN_PROXIES=        # Ex : 192.168.1.10 ou 172.16.0.0/12
 
 # Logs
 LOG_LEVEL=info

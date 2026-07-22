@@ -1,23 +1,24 @@
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
+import MediaLibraryModal from "@razzia/web/features/dashboard/MediaLibraryModal"
 import ShareQuizModal from "@razzia/web/features/dashboard/ShareQuizModal"
 import { useAllManagers } from "@razzia/web/features/dashboard/useAllManagers"
 import { useNavigate } from "@tanstack/react-router"
-import { Download, Search, Share2, SquarePen, Trash2, Upload } from "lucide-react"
+import { Download, Images, Search, Share2, SquarePen, Trash2, Upload } from "lucide-react"
 import { type ChangeEvent, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 import type { ApiQuiz } from "./useQuizApi"
 
 interface Props {
-  quizzes: ApiQuiz[]
-  loading: boolean
+  quizzes:          ApiQuiz[]
+  loading:          boolean
   currentManagerId: string
-  onDelete: (_id: string) => Promise<void>
-  onImport: (_data: unknown) => Promise<void>
-  onExport: (_id: string, _subject: string) => Promise<void>
-  onSetVisibility: (
+  onDelete:         (_id: string) => Promise<void>
+  onImport:         (_data: unknown, _isZip: boolean, _raw: File) => Promise<void>
+  onExport:         (_id: string, _subject: string) => Promise<void>
+  onSetVisibility:  (
     _id: string,
     _visibility: "private" | "public" | "shared",
     _sharedWith: string[],
@@ -35,8 +36,9 @@ const DashboardQuizList = ({
 }: Props) => {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [search, setSearch] = useState("")
+  const [search, setSearch]         = useState("")
   const [sharingQuiz, setSharingQuiz] = useState<ApiQuiz | null>(null)
+  const [showMedia, setShowMedia]   = useState(false)
   const { managers: allManagers, reload: reloadManagers } = useAllManagers()
   const { t } = useTranslation()
 
@@ -47,19 +49,27 @@ const DashboardQuizList = ({
   const handleImportFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    e.target.value = ""
+
+    // ZIP — envoyé directement au backend
+    if (file.name.toLowerCase().endsWith(".zip")) {
+      onImport({}, true, file).catch((err: Error) => toast.error(err.message))
+      return
+    }
+
+    // JSON legacy — parsé côté client
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
         const data: unknown = JSON.parse(event.target?.result as string)
-        onImport(data)
+        onImport(data, false, file)
           .then(() => toast.success(t("manager:quizz.import") + " ✓"))
           .catch((err: Error) => toast.error(err.message))
       } catch {
-        toast.error("Fichier JSON invalide")
+        toast.error(t("manager:quizz.invalidJson"))
       }
     }
     reader.readAsText(file)
-    e.target.value = ""
   }
 
   const handleDelete = (id: string) => () => {
@@ -75,27 +85,28 @@ const DashboardQuizList = ({
   if (loading) {
     return (
       <div className="text-muted-foreground my-8 text-center text-sm">
-        Chargement…
+        {t("common:loading")}
       </div>
     )
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Recherche */}
+
+      {/* Barre de recherche */}
       <div className="relative mb-3 shrink-0">
         <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
         <Input
           variant="sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher un quiz…"
+          placeholder={t("manager:quizz.searchPlaceholder")}
           className="w-full pl-7"
         />
       </div>
 
-      {/* Actions header */}
-      <div className="mb-4 flex shrink-0 gap-2">
+      {/* Boutons Créer + Import */}
+      <div className="mb-2 flex shrink-0 gap-2">
         <Button
           className="flex-1"
           onClick={() => navigate({ to: "/manager/quizz" })}
@@ -112,13 +123,23 @@ const DashboardQuizList = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json"
+          accept=".json,.zip"
           className="hidden"
           onChange={handleImportFile}
         />
       </div>
 
-      {/* Quiz list */}
+      {/* Bouton Gestion des médias */}
+      <Button
+        size="sm"
+        className="bg-accent text-accent-foreground mb-4 shrink-0 w-full"
+        onClick={() => setShowMedia(true)}
+      >
+        <Images className="size-4" />
+        {t("manager:media.manageButton")}
+      </Button>
+
+      {/* Liste des quiz */}
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
         {filteredQuizzes.map((q) => {
           const isOwner = q.owner_id === currentManagerId
@@ -129,7 +150,6 @@ const DashboardQuizList = ({
             >
               <p className="text-foreground truncate font-medium">{q.subject}</p>
               <div className="flex gap-0.5">
-                {/* Partage — seulement pour le propriétaire */}
                 {isOwner && (
                   <button
                     className={`rounded-sm p-2 transition-colors ${
@@ -141,13 +161,12 @@ const DashboardQuizList = ({
                       reloadManagers()
                       setSharingQuiz(q)
                     }}
-                    title="Gérer le partage"
+                    title={t("manager:result.shareTitle")}
                   >
                     <Share2 className="size-4" />
                   </button>
                 )}
 
-                {/* Modifier — seulement pour le propriétaire */}
                 {isOwner && (
                   <button
                     className="text-accent-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
@@ -157,7 +176,7 @@ const DashboardQuizList = ({
                         params: { quizzId: q.id },
                       })
                     }
-                    title="Modifier"
+                    title={t("manager:managers.editTitle")}
                   >
                     <SquarePen className="size-4" />
                   </button>
@@ -192,7 +211,7 @@ const DashboardQuizList = ({
         {filteredQuizzes.length === 0 && (
           <div className="text-muted-foreground my-8 text-center">
             {search ? (
-              <p>{`Aucun résultat pour "${search}"`}</p>
+              <p>{t("manager:result.searchNoResult", { search })}</p>
             ) : (
               <>
                 <p>{t("manager:quizz.none")}</p>
@@ -203,7 +222,15 @@ const DashboardQuizList = ({
         )}
       </div>
 
-      {/* Modale de partage */}
+      {/* Modales */}
+      {showMedia && (
+        <MediaLibraryModal
+          currentManagerId={currentManagerId}
+          allManagers={allManagers}
+          onClose={() => setShowMedia(false)}
+        />
+      )}
+
       {sharingQuiz && (
         <ShareQuizModal
           quiz={sharingQuiz}

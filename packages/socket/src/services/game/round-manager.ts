@@ -370,10 +370,11 @@ export class RoundManager {
 
     const oldLeaderboard = this.tempOldLeaderboard ?? this.leaderboard
 
-    this.opts.send(this.opts.getManagerId(), STATUS.SHOW_LEADERBOARD, {
-      oldLeaderboard: oldLeaderboard.slice(0, 5),
-      leaderboard: this.leaderboard.slice(0, 5),
-    })
+    const leaderboardData = {
+		oldLeaderboard: oldLeaderboard.slice(0, 5),
+		leaderboard: this.leaderboard.slice(0, 5),
+		}
+	this.opts.broadcast(STATUS.SHOW_LEADERBOARD, leaderboardData)
 
     this.tempOldLeaderboard = null
   }

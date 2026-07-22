@@ -4,6 +4,7 @@ import { Eye, EyeOff, X } from "lucide-react"
 import { useState } from "react"
 import { createPortal } from "react-dom"
 import toast from "react-hot-toast"
+import { useTranslation } from "react-i18next"
 
 interface Props {
   onClose: () => void
@@ -49,17 +50,18 @@ const PasswordField = ({
 }
 
 const ChangePasswordModal = ({ onClose, onSuccess }: Props) => {
+  const { t } = useTranslation()
   const [current, setCurrent] = useState("")
   const [next, setNext] = useState("")
   const [confirm, setConfirm] = useState("")
   const [busy, setBusy] = useState(false)
 
   const validate = (): string | null => {
-    if (!current) return "Le mot de passe actuel est requis"
-    if (!next) return "Le nouveau mot de passe est requis"
-    if (next.length < 8) return "Le nouveau mot de passe doit faire au moins 8 caractères"
-    if (next === current) return "Le nouveau mot de passe doit être différent de l'actuel"
-    if (next !== confirm) return "Les mots de passe ne correspondent pas"
+    if (!current) return t("manager:password.currentRequired")
+    if (!next)    return t("manager:password.newRequired")
+    if (next.length < 8) return t("manager:password.tooShort")
+    if (next === current) return t("manager:password.mustDiffer")
+    if (next !== confirm) return t("manager:password.mismatch")
     return null
   }
 
@@ -79,7 +81,7 @@ const ChangePasswordModal = ({ onClose, onSuccess }: Props) => {
       if (!r.ok) { toast.error(data.error ?? `Erreur ${r.status}`); return }
       onSuccess(data.other_sessions ?? 0)
     } catch {
-      toast.error("Erreur réseau")
+      toast.error(t("manager:password.networkError"))
     } finally {
       setBusy(false)
     }
@@ -92,24 +94,39 @@ const ChangePasswordModal = ({ onClose, onSuccess }: Props) => {
     >
       <div className="bg-background w-full max-w-sm rounded-xl p-5 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
-          <p className="text-foreground font-semibold">Changer le mot de passe</p>
+          <p className="text-foreground font-semibold">{t("manager:password.changeTitle")}</p>
           <button className="text-muted-foreground hover:text-foreground rounded-sm p-1" onClick={onClose}>
             <X className="size-4" />
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <PasswordField label="Mot de passe actuel" value={current} onChange={setCurrent} placeholder="••••••••" />
-          <PasswordField label="Nouveau mot de passe" value={next} onChange={setNext} placeholder="8 caractères minimum" />
-          <PasswordField label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} placeholder="••••••••" />
+          <PasswordField
+            label={t("manager:password.currentLabel")}
+            value={current}
+            onChange={setCurrent}
+            placeholder="••••••••"
+          />
+          <PasswordField
+            label={t("manager:password.newLabel")}
+            value={next}
+            onChange={setNext}
+            placeholder={t("manager:password.minLength")}
+          />
+          <PasswordField
+            label={t("manager:password.confirmLabel")}
+            value={confirm}
+            onChange={setConfirm}
+            placeholder="••••••••"
+          />
         </div>
 
         <div className="mt-5 flex gap-2">
           <Button className="bg-accent text-accent-foreground flex-1" onClick={onClose} disabled={busy}>
-            Annuler
+            {t("common:cancel")}
           </Button>
           <Button className="bg-primary flex-1" onClick={handleSubmit} disabled={busy}>
-            {busy ? "Enregistrement…" : "Enregistrer"}
+            {busy ? t("manager:password.saving") : t("common:save")}
           </Button>
         </div>
       </div>

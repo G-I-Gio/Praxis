@@ -2,6 +2,7 @@ import { STATUS } from "@razzia/common/types/game/status"
 import { EVENTS } from "@razzia/common/constants"
 import Background from "@razzia/web/components/Background"
 import Button from "@razzia/web/components/Button"
+import Input from "@razzia/web/components/Input"
 import Card from "@razzia/web/components/Card"
 import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
 import ChangePasswordModal from "@razzia/web/features/dashboard/ChangePasswordModal"
@@ -22,7 +23,7 @@ import { useResultsApi } from "@razzia/web/features/dashboard/useResultsApi"
 import { useManagersApi } from "@razzia/web/features/dashboard/useManagersApi"
 import { useBrandingApi } from "@razzia/web/features/dashboard/useBrandingApi"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { KeyRound, LogOut, Play } from "lucide-react"
+import { KeyRound, LogOut, Play, Search } from "lucide-react"
 import { useState, useRef } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -33,12 +34,17 @@ import { useTranslation } from "react-i18next"
 const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>["quizzes"]; loading: boolean }) => {
   const [selected, setSelected] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+  const [search, setSearch] = useState("")
   const startingRef = useRef(false)
   const selectedRef = useRef<string | null>(null)
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { setConfig, setGameId, setStatus } = useManagerStore()
   const { t } = useTranslation()
+
+  const filteredQuizzes = quizzes.filter((q) =>
+    q.subject.toLowerCase().includes(search.toLowerCase()),
+  )
 
   useEvent(EVENTS.MANAGER.CONFIG, (data) => {
     if (!startingRef.current) return
@@ -50,7 +56,7 @@ const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>[
     if (!startingRef.current) return
     startingRef.current = false
     setStarting(false)
-    toast.error("Session expirée, veuillez vous reconnecter")
+    toast.error(t("manager:dashboard.sessionExpired"))
     navigate({ to: "/manager" })
   })
 
@@ -85,7 +91,7 @@ const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>[
         if (!data.token) {
           startingRef.current = false
           setStarting(false)
-          toast.error("Session expirée, veuillez vous reconnecter")
+          toast.error(t("manager:dashboard.sessionExpired"))
           navigate({ to: "/manager" })
           return
         }
@@ -94,7 +100,7 @@ const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>[
       .catch(() => {
         startingRef.current = false
         setStarting(false)
-        toast.error("Erreur réseau")
+        toast.error(t("manager:dashboard.networkError"))
       })
   }
 
@@ -104,6 +110,18 @@ const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>[
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Recherche */}
+      <div className="relative mb-3 shrink-0">
+        <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+        <Input
+          variant="sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("manager:quizz.searchPlaceholder")}
+          className="w-full pl-7"
+        />
+      </div>
+
       {quizzes.length > 0 && (
         <Button className="mb-4 shrink-0" onClick={handleStart} disabled={starting}>
           <Play className="size-4" />
@@ -111,7 +129,7 @@ const TabPlay = ({ quizzes, loading }: { quizzes: ReturnType<typeof useQuizApi>[
         </Button>
       )}
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
-        {quizzes.map((q) => {
+        {filteredQuizzes.map((q) => {
           const isSelected = selected === q.id
           return (
             <button
@@ -217,7 +235,7 @@ const DashboardPage = () => {
   const isSuperadmin = manager?.role === "superadmin"
 
   const { quizzes, loading: quizLoading, deleteQuiz, importQuiz, exportQuiz, setQuizVisibility } = useQuizApi()
-  const { results, loading: resultsLoading, getResult, deleteResult, setVisibility } = useResultsApi()
+  const { results, loading: resultsLoading, getResult, deleteResult, setVisibility, renameResult } = useResultsApi()
 
   const [activeTab, setActiveTab] = useState<TabKey>("quizz")
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -226,7 +244,7 @@ const DashboardPage = () => {
 
   const handleLogout = async () => {
     await logout()
-    toast.success("Déconnecté")
+    toast.success(t("manager:dashboard.loggedOut"))
   }
 
   if (authLoading) return null
@@ -321,6 +339,7 @@ const DashboardPage = () => {
               onDelete={deleteResult}
               onGetResult={getResult}
               onSetVisibility={setVisibility}
+              onRename={renameResult}
             />
           )}
           {/* Contenus superadmin — ne se montent que si isSuperadmin */}

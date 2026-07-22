@@ -13,7 +13,9 @@
     "notFound": "Kein Quiz gefunden",
     "pleaseCreate": "Bitte erstelle zuerst ein Quiz",
     "pleaseSelect": "Bitte wähle ein Quiz aus",
-    "startGame": "Spiel starten"
+    "startGame": "Spiel starten",
+    "searchPlaceholder": "Quiz suchen…",
+    "invalidJson": "Ungültige JSON-Datei"
   },
   "result": {
     "delete": "Ergebnis löschen",
@@ -35,13 +37,168 @@
       "points": "Punkte"
     },
     "playerCount": "{{count}} Spieler",
-    "timeLimitSuffix": "s Zeitlimit"
+    "timeLimitSuffix": "s Zeitlimit",
+    "renamed": "Ergebnis umbenannt",
+    "visibility": {
+      "private": "Privat",
+      "public": "Öffentlich",
+      "shared": "Geteilt",
+      "toggleTitle": "Sichtbarkeit: {{label}} (klicken zum Wechseln Privat/Öffentlich)"
+    },
+    "searchPlaceholder": "Nach Name oder Datum suchen (TT.MM.JJJJ)…",
+    "searchNoResult": "Kein Ergebnis für \"{{search}}\"",
+    "renameTitle": "Umbenennen",
+    "shareTitle": "Freigabe verwalten",
+    "visibilityUpdated": "Sichtbarkeit → {{label}}"
   },
   "tabs": {
     "play": "Spielen",
     "quizz": "Quiz",
     "results": "Ergebnisse",
-    "managers": "Accounts",
-    "appearance": "Appearance"
+    "managers": "Konten",
+    "appearance": "Erscheinungsbild"
+  },
+  "dashboard": {
+    "sessionExpired": "Sitzung abgelaufen, bitte erneut anmelden",
+    "networkError": "Netzwerkfehler",
+    "loggedOut": "Abgemeldet"
+  },
+  "managers": {
+    "searchPlaceholder": "Konto suchen…",
+    "updated": "Konto aktualisiert",
+    "created": "Konto \"{{name}}\" erstellt",
+    "identifierRequired": "Benutzername und Passwort sind erforderlich",
+    "noResult": "Kein Ergebnis für \"{{search}}\"",
+    "none": "Keine Manager-Konten",
+    "identifierPlaceholder": "Benutzername",
+    "passwordPlaceholder": "Passwort (min. 8 Zeichen)",
+    "newPasswordPlaceholder": "Neues Passwort (leer lassen = unverändert)",
+    "editTitle": "Bearbeiten",
+    "deleteTitle": "Konto löschen",
+    "createAccount": "Konto erstellen",
+    "createBtn": "Erstellen"
+  },
+  "share": {
+    "title": "Freigabe",
+    "hasAccess": "Hat Zugriff ({{count}})",
+    "nobody": "Niemand — {{subject}} ist privat",
+    "addAccess": "Zugriff hinzufügen",
+    "searchPlaceholder": "Konto suchen…",
+    "noResult": "Kein Ergebnis für \"{{search}}\"",
+    "allHaveAccess": "Alle Konten haben bereits Zugriff",
+    "removeTitle": "Zugriff entfernen",
+    "addTitle": "Zugriff gewähren",
+    "sharedWith": "Geteilt mit {{count}} Person",
+    "sharedWithPlural": "Geteilt mit {{count}} Personen",
+    "restricted": "Eingeschränkter Zugriff (privat)",
+    "close": "Schließen"
+  },
+  "appearance": {
+    "updated": "{{label}} aktualisiert",
+    "reset": "{{label}} zurückgesetzt",
+    "identitySaved": "Identität gespeichert",
+    "colorsSaved": "Farben gespeichert",
+    "fontSaved": "Schriftart gespeichert",
+    "themeApplied": "Design auf alle Clients angewendet",
+    "resetDefault": "Auf Standard zurücksetzen",
+    "default": "Standard",
+    "choose": "Auswahlen",
+    "applyTitle": "Auf alle verbundenen Clients anwenden",
+    "applyDesc": "Ladt das Design auf allen verbundenen Browsern neu ohne Neustart.",
+    "applyButton": "Speichern und anwenden",
+    "section": {
+      "identity": "Identitat",
+      "colors": "Farben",
+      "visual": "Visuell",
+      "typography": "Typografie",
+      "sounds": "Klange"
+    },
+    "field": {
+      "appName": "Anwendungsname",
+      "logo": "Logo",
+      "favicon": "Favicon",
+      "primaryColor": "Hauptfarbe",
+      "backgroundColor": "Hintergrundfarbe",
+      "answerColor": "Antwort {{letter}}",
+      "background": "Hintergrundbild (Spieloberflache)",
+      "fontFamily": "Schriftfamilie",
+      "fontUrl": "Stylesheet-URL (optional)"
+    },
+    "audio": {
+      "answersMusic": "Musik wahrend der Antworten",
+      "answersSound": "Antwortbestatigungston",
+      "showSound": "Frageanzeigeton",
+      "resultsSound": "Ergebnisanzeigeton",
+      "boumpSound": "Ubergangston",
+      "podiumThree": "Podium - 3. Platz",
+      "podiumSecond": "Podium - 2. Platz",
+      "podiumFirst": "Podium - 1. Platz",
+      "podiumSnearRoll": "Podium - Snare-Trommelwirbel"
+    }
+  },
+  "password": {
+    "changeTitle": "Passwort ändern",
+    "currentLabel": "Aktuelles Passwort",
+    "newLabel": "Neues Passwort",
+    "confirmLabel": "Neues Passwort bestätigen",
+    "minLength": "Mindestens 8 Zeichen",
+    "saving": "Speichern…",
+    "currentRequired": "Aktuelles Passwort ist erforderlich",
+    "newRequired": "Neues Passwort ist erforderlich",
+    "tooShort": "Neues Passwort muss mindestens 8 Zeichen haben",
+    "mustDiffer": "Neues Passwort muss sich vom aktuellen unterscheiden",
+    "mismatch": "Passwörter stimmen nicht überein",
+    "networkError": "Netzwerkfehler",
+    "successTitle": "Passwort geändert",
+    "successBody": "Ihr Passwort wurde erfolgreich aktualisiert.",
+    "sessionsActive_one": "Sie haben {{count}} weitere aktive Sitzung. Möchten Sie sich abmelden?",
+    "sessionsActive_other": "Sie haben {{count}} weitere aktive Sitzungen. Möchten Sie sich abmelden?",
+    "disconnecting": "Abmelden…",
+    "disconnectAll": "Alle anderen Sitzungen abmelden",
+    "keepSessions": "Sitzungen aktiv lassen",
+    "sessionsDisconnected_one": "{{count}} Sitzung abgemeldet",
+    "sessionsDisconnected_other": "{{count}} Sitzungen abgemeldet",
+    "sessionsError": "Sitzungen konnten nicht abgemeldet werden",
+    "close": "Schließen"
+  },
+  "media": {
+    "title": "Medienbibliothek",
+    "manageButton": "Medienbibliothek",
+    "tab": {
+      "mine": "Meine Medien",
+      "shared": "Geteilt",
+      "public": "Öffentlich"
+    },
+    "upload": "Hochladen",
+    "uploading": "Wird hochgeladen…",
+    "uploaded": "Datei hochgeladen",
+    "download": "Herunterladen",
+    "share": "Teilen",
+    "delete": "Löschen",
+    "deleted": "Medium gelöscht",
+    "deleteBlocked": "Dieses Medium wird in Quiz verwendet — entfernen Sie es zuerst aus allen Quiz",
+    "deleteBlockedTitle": "Wird in {{count}} Quiz verwendet",
+    "visibilityUpdated": "Sichtbarkeit aktualisiert",
+    "visibility": {
+      "private": "Privat",
+      "public": "Öffentlich",
+      "shared": "Geteilt"
+    },
+    "searchPlaceholder": "Nach Name suchen…",
+    "noResult": "Keine Ergebnisse für «{{search}}»",
+    "empty": "Keine Medien in dieser Bibliothek",
+    "selectHint": "Wählen Sie ein Medium aus, um Details anzuzeigen",
+    "dropHint": "Datei hier ablegen",
+    "addedOn": "Hinzugefügt am {{date}}",
+    "usedIn": "Wird in {{count}} Quiz verwendet",
+    "usedByOther": "Quiz von {{name}}",
+    "openLibrary": "Bibliothek öffnen",
+    "libraryHint": "Medium aus Ihrer Bibliothek auswählen",
+    "uploadHint": "Datei hochladen (max {{max}} MB)",
+    "editorTab": {
+      "url": "Externe URL",
+      "library": "Bibliothek",
+      "upload": "Hochladen"
+    }
   }
 }

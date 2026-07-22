@@ -18,6 +18,34 @@ import {
   updateResultVisibility,
 } from "@razzia/socket/services/database"
 import { quizzValidator } from "@razzia/common/validators/quizz"
+import {
+  canReadMedia,
+  canWriteMedia,
+  createMediaEntry,
+  deleteMediaEntry,
+  getMediaById,
+  getMediaRow,
+  getMediaFileByHash,
+  getTotalMediaStorage,
+  listMedia,
+  migrateMediaTables,
+  resolveMediaUrl,
+  syncQuizMedia,
+  extractMediaRefs,
+  updateMediaVisibility,
+} from "@razzia/socket/services/database"
+import {
+  buildQuizZip,
+  extFromFilename,
+  getMediaPath,
+  handleMediaUpload,
+  parseQuizZip,
+  processZipMedia,
+  streamMediaFile,
+  substituteMediaRefs,
+  ALLOWED_MEDIA,
+} from "@razzia/socket/services/media"
+import Registry from "@razzia/socket/services/registry"
 
 const COOKIE_NAME = "praxis_session"
 const BCRYPT_ROUNDS = 12
@@ -45,6 +73,7 @@ const parseJson = (body: string): Record<string, unknown> | null => {
 }
 
 const getIp = (req: IncomingMessage): string =>
+  (req.headers["x-real-ip"] as string | undefined) ??
   (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
   req.socket.remoteAddress ??
   "unknown"
@@ -58,17 +87,23 @@ const getCookie = (req: IncomingMessage, name: string): string | null => {
   return null
 }
 
+// Secure flag: always set in production (HTTPS). In development (HTTP), omit it
+// so the browser does not silently discard the cookie. Set COOKIE_SECURE=false
+// to opt out explicitly (e.g. local HTTP dev outside Docker).
+const COOKIE_SECURE = process.env.COOKIE_SECURE !== "false"
+const SECURE_FLAG = COOKIE_SECURE ? "; Secure" : ""
+
 const setSessionCookie = (res: ServerResponse, token: string): void => {
   res.setHeader(
     "Set-Cookie",
-    `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`,
+    `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000${SECURE_FLAG}`,
   )
 }
 
 const clearSessionCookie = (res: ServerResponse): void => {
   res.setHeader(
     "Set-Cookie",
-    `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`,
+    `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${SECURE_FLAG}`,
   )
 }
 
@@ -523,6 +558,7 @@ const handleCreateQuiz = requireAuth(async (req, res, manager) => {
       now,
     )
 
+  syncQuizMedia(id, result.data.questions as unknown[])
   audit("quiz_created", manager.id, getIp(req), `quiz_id=${id}`)
 
   return json(res, 201, { id })
@@ -586,6 +622,7 @@ const handleUpdateQuiz = requireAuth(async (req, res, manager) => {
       id,
     )
 
+  syncQuizMedia(id, result.data.questions as unknown[])
   audit("quiz_updated", manager.id, getIp(req), `quiz_id=${id}`)
 
   return json(res, 200, { id })
@@ -633,8 +670,112 @@ const handleExportQuiz = requireAuth((req, res, manager) => {
   res.end(body)
 })
 
-// POST /api/quizzes/import
+// POST /api/quizzes/import — accepte JSON (legacy) ou ZIP (avec médias)
 const handleImportQuiz = requireAuth(async (req, res, manager) => {
+  const contentType = (req.headers["content-type"] ?? "").toLowerCase()
+  const isZip = contentType.includes("application/zip") ||
+                contentType.includes("application/octet-stream") ||
+                contentType.includes("multipart/form-data")
+
+  // ── Import ZIP ──────────────────────────────────────────────────────────
+  if (isZip) {
+    // Maximum compressed ZIP size accepted before we even attempt to decompress.
+    // nginx already enforces client_max_body_size 20m on /api/, but we add an
+    // explicit application-level guard so that:
+    //   1. the limit is enforced even if Node is exposed directly (no nginx),
+    //   2. we control the error message and log it properly,
+    //   3. we never call unzipSync (synchronous, blocks event loop) on an
+    //      unexpectedly large buffer - a 20 MB compressed file could expand to
+    //      hundreds of MB in memory (ZIP bomb).
+    // We cap the ZIP at MAX_MEDIA_SIZE * number of media slots (4 answers * max
+    // questions is unbounded, so we use a generous but finite ceiling: 5x the
+    // single-media limit, i.e. 100 MB by default, well above any legitimate quiz).
+    const maxMediaBytes = parseInt(process.env.MAX_MEDIA_SIZE ?? "20", 10) * 1024 * 1024
+    const maxZipBytes = maxMediaBytes * 5
+
+    const chunks: Buffer[] = []
+    let totalSize = 0
+    let aborted = false
+
+    await new Promise<void>((res2, rej) => {
+      req.on("data", (c: Buffer) => {
+        totalSize += c.byteLength
+        if (totalSize > maxZipBytes) {
+          aborted = true
+          req.destroy()
+          rej(new Error(`ZIP trop volumineux (max ${Math.round(maxZipBytes / 1024 / 1024)} Mo)`))
+        } else {
+          chunks.push(c)
+        }
+      })
+      req.on("end",  res2)
+      req.on("error", rej)
+    }).catch((err: Error) => {
+      if (aborted) return json(res, 413, { error: err.message })
+      throw err
+    })
+
+    if (aborted) return
+
+    const buf = Buffer.concat(chunks)
+
+    let parsed
+    try {
+      parsed = parseQuizZip(buf)
+    } catch (err) {
+      return json(res, 400, { error: `ZIP invalide : ${(err as Error).message}` })
+    }
+
+    // Traiter les médias
+    const importedMedia = processZipMedia(parsed.rawMedia)
+
+    // Créer les entrées media en base + construire la map hash.ext → uuid
+    const hashToId = new Map<string, string>()
+    for (const m of importedMedia) {
+      const mediaId = createMediaEntry({
+        hash:         m.hash,
+        ext:          m.ext,
+        mimeType:     m.mimeType,
+        size:         m.size,
+        originalName: m.originalName,
+        ownerId:      manager.id,
+        visibility:   "private",
+      })
+      hashToId.set(`${m.hash}.${m.ext}`, mediaId)
+    }
+
+    // Substituer les refs dans le JSON du quiz
+    const resolvedJson = substituteMediaRefs(parsed.quizJson, hashToId)
+
+    let quizData
+    try {
+      quizData = JSON.parse(resolvedJson) as Record<string, unknown>
+    } catch {
+      return json(res, 400, { error: "quiz.json invalide dans le ZIP" })
+    }
+
+    const result = quizzValidator.safeParse(quizData)
+    if (!result.success) {
+      return json(res, 400, { error: result.error.issues[0]?.message ?? "Validation error" })
+    }
+
+    const id = randomUUID()
+    const now = Math.floor(Date.now() / 1000)
+    getDb()
+      .prepare(
+        `INSERT INTO quizzes (id, owner_id, visibility, shared_with, subject, questions, created_at, updated_at)
+         VALUES (?, ?, 'private', '[]', ?, ?, ?, ?)`,
+      )
+      .run(id, manager.id, result.data.subject, JSON.stringify(result.data.questions), now, now)
+
+    // Synchroniser quiz_media
+    syncQuizMedia(id, result.data.questions as unknown[])
+
+    audit("quiz_imported_zip", manager.id, getIp(req), `quiz_id=${id} media=${importedMedia.length}`)
+    return json(res, 201, { id, imported_media: importedMedia.length })
+  }
+
+  // ── Import JSON legacy ───────────────────────────────────────────────────
   const body = parseJson(await readBody(req))
   if (!body) return json(res, 400, { error: "Invalid JSON" })
 
@@ -653,8 +794,10 @@ const handleImportQuiz = requireAuth(async (req, res, manager) => {
     )
     .run(id, manager.id, result.data.subject, JSON.stringify(result.data.questions), now, now)
 
-  audit("quiz_imported", manager.id, getIp(req), `quiz_id=${id}`)
+  // Synchroniser quiz_media (pour les refs media: éventuelles dans un JSON importé)
+  syncQuizMedia(id, result.data.questions as unknown[])
 
+  audit("quiz_imported", manager.id, getIp(req), `quiz_id=${id}`)
   return json(res, 201, { id })
 })
 
@@ -819,6 +962,28 @@ const handleGetResult = requireAuth((req, res, manager) => {
     shared_with: JSON.parse(row.shared_with) as string[],
     owner_id: row.owner_id,
   })
+})
+
+// PATCH /api/results/:id — renommer un résultat
+const handleRenameResult = requireAuth(async (req, res, manager) => {
+  const id = extractParam(req.url!, "/api/results/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const row = getResultRowDb(id)
+  if (!row) return json(res, 404, { error: "Result not found" })
+  if (!canWriteResult(row, manager.id, manager.role))
+    return json(res, 403, { error: "Forbidden" })
+
+  const body = parseJson(await readBody(req))
+  const subject = (body?.subject as string | undefined)?.trim()
+  if (!subject) return json(res, 400, { error: "subject est requis" })
+
+  getDb()
+    .prepare("UPDATE results SET subject = ? WHERE id = ?")
+    .run(subject, id)
+
+  audit("result_renamed", manager.id, getIp(req), `result_id=${id}`)
+  return json(res, 200, { ok: true })
 })
 
 // DELETE /api/results/:id
@@ -1066,6 +1231,249 @@ const handleBrandingApply = requireSuperadmin((req, res, manager) => {
   return json(res, 200, { ok: true })
 })
 
+
+// ============================================================
+// --- Handlers Médias ---
+// ============================================================
+
+// GET /api/media
+const handleListMedia = requireAuth((req, res, manager) => {
+  const media = listMedia(manager.id, manager.role)
+  const storageTotal = manager.role === "superadmin" ? getTotalMediaStorage() : undefined
+  return json(res, 200, { media, ...(storageTotal !== undefined ? { storage_total: storageTotal } : {}) })
+})
+
+// POST /api/media/upload
+const handleUploadMedia = requireAuth(async (req, res, manager) => {
+  let result
+  try {
+    result = await handleMediaUpload(req)
+  } catch (err) {
+    return json(res, 400, { error: (err as Error).message })
+  }
+
+  const id = createMediaEntry({
+    hash:         result.hash,
+    ext:          result.ext,
+    mimeType:     result.mimeType,
+    size:         result.size,
+    originalName: result.originalName,
+    ownerId:      manager.id,
+  })
+
+  const entry = getMediaById(id, manager.id)
+  audit("media_uploaded", manager.id, getIp(req), `media_id=${id} hash=${result.hash} dedup=${result.alreadyExisted}`)
+  logger.info("Media uploaded", { id, hash: result.hash, dedup: result.alreadyExisted, size: result.size })
+
+  return json(res, 201, { media: entry })
+})
+
+// GET /api/media/:id
+const handleGetMedia = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/media/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const m = getMediaRow(id)
+  if (!m) return json(res, 404, { error: "Media not found" })
+  if (!canReadMedia(m, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const entry = getMediaById(id, manager.id)
+  return json(res, 200, { media: entry })
+})
+
+// GET /api/media/:id/file  (stream inline, Range support)
+const handleGetMediaFile = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/media/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const m = getMediaRow(id)
+  if (!m) return json(res, 404, { error: "Media not found" })
+  if (!canReadMedia(m, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const f = getMediaFileByHash(m.hash)
+  if (!f) return json(res, 404, { error: "File not found" })
+
+  streamMediaFile(
+    res,
+    getMediaPath(m.hash, f.ext),
+    f.mime_type,
+    m.original_name,
+    "inline",
+    req.headers["range"],
+  )
+})
+
+// GET /api/media/:id/download  (téléchargement forcé)
+const handleDownloadMedia = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/media/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const m = getMediaRow(id)
+  if (!m) return json(res, 404, { error: "Media not found" })
+  if (!canReadMedia(m, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const f = getMediaFileByHash(m.hash)
+  if (!f) return json(res, 404, { error: "File not found" })
+
+  audit("media_downloaded", manager.id, getIp(req), `media_id=${id}`)
+  streamMediaFile(
+    res,
+    getMediaPath(m.hash, f.ext),
+    f.mime_type,
+    m.original_name,
+    "attachment",
+    undefined,
+  )
+})
+
+// PATCH /api/media/:id/visibility
+const handleUpdateMediaVisibility = requireAuth(async (req, res, manager) => {
+  const id = extractParam(req.url!, "/api/media/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const m = getMediaRow(id)
+  if (!m) return json(res, 404, { error: "Media not found" })
+  if (!canWriteMedia(m, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const body = parseJson(await readBody(req))
+  const visibility = body?.visibility as string | undefined
+  if (!visibility || !["private", "public", "shared"].includes(visibility))
+    return json(res, 400, { error: "visibility must be private, public or shared" })
+
+  const sharedWith = Array.isArray(body?.shared_with) ? (body.shared_with as string[]) : []
+  updateMediaVisibility(id, visibility as "private" | "public" | "shared", sharedWith)
+
+  audit("media_visibility_updated", manager.id, getIp(req), `media_id=${id} visibility=${visibility}`)
+  return json(res, 200, { ok: true })
+})
+
+// DELETE /api/media/:id
+const handleDeleteMedia = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/media/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const m = getMediaRow(id)
+  if (!m) return json(res, 404, { error: "Media not found" })
+  if (!canWriteMedia(m, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const result = deleteMediaEntry(id)
+
+  if (!result.ok && result.blocked) {
+    return json(res, 409, {
+      error: "Ce média est référencé par des quiz",
+      referenced_by: result.blocked,
+    })
+  }
+
+  if (result.physicallyDeleted && result.hash) {
+    // Supprimer le fichier physique
+    const f = getMediaFileByHash(result.hash)
+    if (!f) {
+      // déjà supprimé de media_files, chercher l'ext autrement — skip
+    }
+  }
+
+  audit("media_deleted", manager.id, getIp(req), `media_id=${id} physical=${result.physicallyDeleted}`)
+  return json(res, 200, { ok: true })
+})
+
+// GET /media/:gameId/:hash.:ext  (route publique — parties actives)
+const handlePublicMediaFile = (req: IncomingMessage, res: ServerResponse): void => {
+  const url = req.url?.split("?")[0] ?? ""
+  // Format : /media/<gameId>/<hash>.<ext>
+  const match = /^\/media\/([^/]+)\/([a-f0-9]{64})\.([a-z0-9]+)$/.exec(url)
+  if (!match) {
+    res.writeHead(404); res.end(); return
+  }
+  const [, gameId, hash, ext] = match as [string, string, string, string]
+
+  // Vérifier que la partie est active
+  const registry = Registry.getInstance()
+  const game = registry.getGameById(gameId)
+  if (!game) {
+    res.writeHead(404); res.end(); return
+  }
+
+  // Vérifier que ce hash est autorisé pour cette partie
+  if (!game.allowedMediaHashes.has(hash)) {
+    res.writeHead(404); res.end(); return
+  }
+
+  const mime = ALLOWED_MEDIA[ext]
+  if (!mime) {
+    res.writeHead(404); res.end(); return
+  }
+
+  const filePath = getMediaPath(hash, ext)
+  streamMediaFile(res, filePath, mime, `${hash}.${ext}`, "inline", req.headers["range"])
+}
+
+// ============================================================
+// --- Export ZIP quiz ---
+// ============================================================
+
+// GET /api/quizzes/:id/export  (surchargé pour supporter ZIP si ?format=zip)
+const handleExportQuizZip = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/quizzes/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const quiz = getDb()
+    .prepare("SELECT * FROM quizzes WHERE id = ?")
+    .get(id) as DbQuiz | undefined
+
+  if (!quiz) return json(res, 404, { error: "Quiz not found" })
+  if (!canReadQuiz(quiz, manager.id, manager.role)) return json(res, 403, { error: "Forbidden" })
+
+  const questions = JSON.parse(quiz.questions) as unknown[]
+  const mediaRefs = extractMediaRefs(questions)
+
+  // Résoudre chaque media:<uuid> → { hash, ext, originalName }
+  const mediaEntries = mediaRefs.flatMap((mediaId) => {
+    const resolved = resolveMediaUrl(mediaId)
+    if (!resolved) return []
+    const mRow = getMediaRow(mediaId)
+    return [{ hash: resolved.hash, ext: resolved.ext, originalName: mRow?.original_name ?? `${resolved.hash}.${resolved.ext}` }]
+  })
+
+  // Dans le JSON exporté, remplacer media:<uuid> par media:<hash>.<ext>
+  let quizJson = JSON.stringify({ id: quiz.id, subject: quiz.subject, questions }, null, 2)
+  for (const mediaId of mediaRefs) {
+    const resolved = resolveMediaUrl(mediaId)
+    if (resolved) {
+      quizJson = quizJson.split(`media:${mediaId}`).join(`media:${resolved.hash}.${resolved.ext}`)
+    }
+  }
+
+  const hasMedia = mediaEntries.length > 0
+  const url = req.url ?? ""
+  const wantsZip = url.includes("format=zip") || hasMedia
+
+  if (!wantsZip) {
+    // JSON legacy
+    const body = quizJson
+    const filename = `quiz-${id}.json`
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": Buffer.byteLength(body),
+    })
+    res.end(body)
+    return
+  }
+
+  // ZIP avec médias
+  const zipBuffer = buildQuizZip(quizJson, mediaEntries)
+  const safeName = quiz.subject.replace(/[^a-z0-9]/gi, "_").slice(0, 40)
+  const filename = `quiz-${safeName}.zip`
+
+  res.writeHead(200, {
+    "Content-Type": "application/zip",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Length": zipBuffer.byteLength,
+  })
+  res.end(zipBuffer)
+})
+
 // Extrait le Nth segment d'un chemin après le préfixe
 // ex: extractParam("/api/quizzes/abc123/export", "/api/quizzes/", 1) → "abc123"
 const extractParam = (url: string, prefix: string, segment: number): string | null => {
@@ -1094,6 +1502,8 @@ const STATIC_ROUTES: Record<string, Record<string, Handler>> = {
   "/api/results":              { GET: handleListResults },
   "/api/branding":             { GET: handleGetBranding, PATCH: handlePatchBranding },
   "/api/branding/apply":       { POST: handleBrandingApply },
+  "/api/media":                { GET: handleListMedia },
+  "/api/media/upload":         { POST: handleUploadMedia },
 }
 
 const resolveHandler = (url: string, method: string): Handler | null => {
@@ -1107,7 +1517,7 @@ const resolveHandler = (url: string, method: string): Handler | null => {
     const rest = path.slice("/api/quizzes/".length)
     const [id, sub] = rest.split("/")
 
-    if (id && sub === "export" && method === "GET") return handleExportQuiz
+    if (id && sub === "export" && method === "GET") return handleExportQuizZip
     if (id && sub === "visibility" && method === "PATCH") return handleUpdateQuizVisibility
     if (id && !sub) {
       if (method === "GET") return handleGetQuiz
@@ -1128,6 +1538,7 @@ const resolveHandler = (url: string, method: string): Handler | null => {
     if (id && sub === "visibility" && method === "PATCH") return handleUpdateResultVisibility
     if (id && !sub) {
       if (method === "GET") return handleGetResult
+      if (method === "PATCH") return handleRenameResult
       if (method === "DELETE") return handleDeleteResult
     }
   }
@@ -1143,20 +1554,38 @@ const resolveHandler = (url: string, method: string): Handler | null => {
     }
   }
 
+  // Dynamic media routes: /api/media/:id, /api/media/:id/file, /api/media/:id/download, /api/media/:id/visibility
+  if (path.startsWith("/api/media/")) {
+    const rest = path.slice("/api/media/".length)
+    const [id, sub] = rest.split("/")
+
+    if (id && sub === "file"       && method === "GET")   return handleGetMediaFile
+    if (id && sub === "download"   && method === "GET")   return handleDownloadMedia
+    if (id && sub === "visibility" && method === "PATCH") return handleUpdateMediaVisibility
+    if (id && !sub) {
+      if (method === "GET")    return handleGetMedia
+      if (method === "DELETE") return handleDeleteMedia
+    }
+  }
+
+  // Route publique médias parties : /media/:gameId/:hash.:ext
+  if (path.startsWith("/media/") && method === "GET") return handlePublicMediaFile
+
   return null
 }
 
 export const createHttpServer = () => {
-  // Migrer la table quizzes au démarrage
+  // Migrer les tables au démarrage
   migrateQuizzesTable()
+  migrateMediaTables()
 
   const server = createServer(async (req, res) => {
-    // CORS headers pour le frontend
-    res.setHeader("Access-Control-Allow-Origin", "*")
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type")
-    res.setHeader("Access-Control-Allow-Credentials", "true")
-
+    // CORS: the SPA is served by the same nginx that proxies this Node server,
+    // so all browser requests are same-origin (/api/*, /auth/*). No ACAO header
+    // is needed for same-origin requests, and the combination of
+    // "Access-Control-Allow-Origin: *" with "Allow-Credentials: true" is
+    // explicitly forbidden by the CORS spec (browsers reject it).
+    // We only handle OPTIONS to satisfy potential preflight probes.
     if (req.method === "OPTIONS") {
       res.writeHead(204)
       res.end()

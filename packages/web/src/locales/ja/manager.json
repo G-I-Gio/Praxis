@@ -13,7 +13,9 @@
     "notFound": "クイズが見つかりません",
     "pleaseCreate": "先にクイズを作成してください",
     "pleaseSelect": "クイズを選択してください",
-    "startGame": "ゲーム開始"
+    "startGame": "ゲーム開始",
+    "searchPlaceholder": "クイズを検索…",
+    "invalidJson": "無効なJSONファイル"
   },
   "result": {
     "delete": "結果を削除",
@@ -35,13 +37,168 @@
       "points": "ポイント"
     },
     "playerCount": "{{count}}人",
-    "timeLimitSuffix": "秒制限"
+    "timeLimitSuffix": "秒制限",
+    "renamed": "結果を名称変更しました",
+    "visibility": {
+      "private": "非公開",
+      "public": "公開",
+      "shared": "共有",
+      "toggleTitle": "公開設定: {{label}}（クリックで非公開/公開を切り替え）"
+    },
+    "searchPlaceholder": "名前または日付で検索 (YYYY/MM/DD)…",
+    "searchNoResult": "「{{search}}」に一致する結果はありません",
+    "renameTitle": "名称変更",
+    "shareTitle": "共有を管理",
+    "visibilityUpdated": "公開設定 → {{label}}"
   },
   "tabs": {
     "play": "プレイ",
     "quizz": "クイズ",
     "results": "結果",
-    "managers": "Accounts",
-    "appearance": "Appearance"
+    "managers": "アカウント",
+    "appearance": "外観"
+  },
+  "dashboard": {
+    "sessionExpired": "セッションが期限切れです。再度ログインしてください",
+    "networkError": "ネットワークエラー",
+    "loggedOut": "ログアウトしました"
+  },
+  "managers": {
+    "searchPlaceholder": "アカウントを検索…",
+    "updated": "アカウントを更新しました",
+    "created": "アカウント「{{name}}」を作成しました",
+    "identifierRequired": "ユーザー名とパスワードは必須です",
+    "noResult": "「{{search}}」に一致する結果はありません",
+    "none": "マネージャーアカウントはありません",
+    "identifierPlaceholder": "ユーザー名",
+    "passwordPlaceholder": "パスワード（最低8文字）",
+    "newPasswordPlaceholder": "新しいパスワード（空欄 = 変更なし）",
+    "editTitle": "編集",
+    "deleteTitle": "アカウントを削除",
+    "createAccount": "アカウントを作成",
+    "createBtn": "作成"
+  },
+  "share": {
+    "title": "共有",
+    "hasAccess": "アクセス権あり ({{count}})",
+    "nobody": "なし — {{subject}} は非公開です",
+    "addAccess": "アクセス権を追加",
+    "searchPlaceholder": "アカウントを検索…",
+    "noResult": "「{{search}}」に一致する結果はありません",
+    "allHaveAccess": "すべてのアカウントはすでにアクセス権があります",
+    "removeTitle": "アクセス権を削除",
+    "addTitle": "アクセス権を付与",
+    "sharedWith": "{{count}}人と共有",
+    "sharedWithPlural": "{{count}}人と共有",
+    "restricted": "アクセス制限あり（非公開）",
+    "close": "閉じる"
+  },
+  "appearance": {
+    "updated": "{{label}}を更新しました",
+    "reset": "{{label}}をリセットしました",
+    "identitySaved": "ブランドIDを保存しました",
+    "colorsSaved": "カラーを保存しました",
+    "fontSaved": "フォントを保存しました",
+    "themeApplied": "テーマをすべてのクライアントに適用しました",
+    "resetDefault": "デフォルトに戻す",
+    "default": "デフォルト",
+    "choose": "選択",
+    "applyTitle": "接続中のすべてのクライアントに適用",
+    "applyDesc": "再起動なしですべての接続ブラウザにテーマを再読み込みします。",
+    "applyButton": "保存して適用",
+    "section": {
+      "identity": "ブランドID",
+      "colors": "カラー",
+      "visual": "ビジュアル",
+      "typography": "タイポグラフィ",
+      "sounds": "サウンド"
+    },
+    "field": {
+      "appName": "アプリケーション名",
+      "logo": "ロゴ",
+      "favicon": "ファビコン",
+      "primaryColor": "メインカラー",
+      "backgroundColor": "背景色",
+      "answerColor": "回答 {{letter}}",
+      "background": "背景画像（ゲーム画面）",
+      "fontFamily": "フォントファミリー",
+      "fontUrl": "スタイルシートURL（オプション）"
+    },
+    "audio": {
+      "answersMusic": "回答中のBGM",
+      "answersSound": "回答確認音",
+      "showSound": "問題表示音",
+      "resultsSound": "結果表示音",
+      "boumpSound": "トランジション音",
+      "podiumThree": "表彰台 - 3位",
+      "podiumSecond": "表彰台 - 2位",
+      "podiumFirst": "表彰台 - 1位",
+      "podiumSnearRoll": "表彰台 - スネアドラムロール"
+    }
+  },
+  "password": {
+    "changeTitle": "パスワードを変更",
+    "currentLabel": "現在のパスワード",
+    "newLabel": "新しいパスワード",
+    "confirmLabel": "新しいパスワードを確認",
+    "minLength": "最低8文字",
+    "saving": "保存中…",
+    "currentRequired": "現在のパスワードは必須です",
+    "newRequired": "新しいパスワードは必須です",
+    "tooShort": "新しいパスワードは8文字以上にしてください",
+    "mustDiffer": "新しいパスワードは現在のものと異なる必要があります",
+    "mismatch": "パスワードが一致しません",
+    "networkError": "ネットワークエラー",
+    "successTitle": "パスワードを変更しました",
+    "successBody": "パスワードが正常に更新されました。",
+    "sessionsActive_one": "他に{{count}}つのアクティブなセッションがあります。ログアウトしますか？",
+    "sessionsActive_other": "他に{{count}}つのアクティブなセッションがあります。ログアウトしますか？",
+    "disconnecting": "ログアウト中…",
+    "disconnectAll": "他のすべてのセッションをログアウト",
+    "keepSessions": "セッションを維持する",
+    "sessionsDisconnected_one": "{{count}}つのセッションをログアウトしました",
+    "sessionsDisconnected_other": "{{count}}つのセッションをログアウトしました",
+    "sessionsError": "セッションのログアウトに失敗しました",
+    "close": "閉じる"
+  },
+  "media": {
+    "title": "メディアライブラリ",
+    "manageButton": "メディアライブラリ",
+    "tab": {
+      "mine": "マイメディア",
+      "shared": "共有済み",
+      "public": "公開"
+    },
+    "upload": "アップロード",
+    "uploading": "アップロード中…",
+    "uploaded": "ファイルをアップロードしました",
+    "download": "ダウンロード",
+    "share": "共有",
+    "delete": "削除",
+    "deleted": "メディアを削除しました",
+    "deleteBlocked": "このメディアはクイズで使用されています — すべてのクイズから削除してください",
+    "deleteBlockedTitle": "{{count}}つのクイズで使用中",
+    "visibilityUpdated": "公開設定を更新しました",
+    "visibility": {
+      "private": "非公開",
+      "public": "公開",
+      "shared": "共有"
+    },
+    "searchPlaceholder": "名前で検索…",
+    "noResult": "「{{search}}」に一致する結果はありません",
+    "empty": "このライブラリにメディアはありません",
+    "selectHint": "メディアを選択して詳細を表示",
+    "dropHint": "ここにファイルをドラッグ＆ドロップ",
+    "addedOn": "{{date}}に追加",
+    "usedIn": "{{count}}つのクイズで使用",
+    "usedByOther": "{{name}}のクイズ",
+    "openLibrary": "ライブラリを開く",
+    "libraryHint": "ライブラリからメディアを選択",
+    "uploadHint": "ファイルをアップロード（最大{{max}} MB）",
+    "editorTab": {
+      "url": "外部URL",
+      "library": "ライブラリ",
+      "upload": "アップロード"
+    }
   }
 }

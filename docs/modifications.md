@@ -190,6 +190,8 @@ La limite nginx est calculée automatiquement à `MAX_UPLOAD_SIZE × 1.25` par `
 | `packages/socket/src/services/http.ts` | Serveur HTTP natif, toutes les routes REST |
 | `packages/socket/src/services/health.ts` | Service de santé et état de démarrage |
 | `packages/socket/src/services/logger.ts` | Logger JSON structuré |
+| `packages/socket/src/services/media.ts` | Upload, magic bytes, SHA-256, stream Range, ZIP export/import |
+| `packages/socket/src/services/registry.ts` | Registre des parties actives (médias autorisés par partie) |
 
 ### Docker
 | Fichier | Rôle |
@@ -215,6 +217,9 @@ La limite nginx est calculée automatiquement à `MAX_UPLOAD_SIZE × 1.25` par `
 | `features/dashboard/ShareQuizModal.tsx` | Modale partage quiz avec recherche |
 | `features/dashboard/ChangePasswordModal.tsx` | Modale changement mot de passe |
 | `features/dashboard/PasswordSuccessModal.tsx` | Modale succès + gestion sessions |
+| `features/dashboard/MediaLibraryModal.tsx` | Bibliothèque de médias (upload, sélection, visibilité) |
+| `features/dashboard/ShareMediaModal.tsx` | Modale partage média avec recherche |
+| `features/dashboard/useMediaApi.ts` | Hook CRUD médias REST |
 
 ---
 
@@ -234,6 +239,9 @@ La limite nginx est calculée automatiquement à `MAX_UPLOAD_SIZE × 1.25` par `
 | `packages/web/src/pages/manager/quizz/*.tsx` | Mode `apiMode` (sauvegarde REST) |
 | `packages/web/src/pages/party/manager/$gameId.tsx` | Redirection fin de partie → `/manager/dashboard` |
 | `packages/web/src/features/quizz/components/QuizzEditorHeader.tsx` | Mode REST en plus du mode Socket.IO |
+| `packages/web/src/features/quizz/components/QuizzEditorCard.tsx` | Résolution `media:<uuid>` → `/api/media/<uuid>/file` dans la sidebar |
+| `packages/web/src/features/quizz/components/QuestionEditor/QuestionEditorMedia.tsx` | Sélection média depuis la bibliothèque ou URL externe |
+| `packages/web/src/components/QuestionMedia.tsx` | Affichage plein écran des médias pendant la partie |
 | `packages/web/src/pages/(auth)/manager/index.tsx` | Login username/password au lieu du mot de passe global |
 | `packages/web/src/features/game/utils/constants.ts` | `SFX` → `getSFX()` dynamique |
 | `docker/nginx.conf` | Proxy `/auth/`, `/api/` (20 Mo max), `/branding/`, `/health` |
@@ -246,7 +254,7 @@ La limite nginx est calculée automatiquement à `MAX_UPLOAD_SIZE × 1.25` par `
 
 **Pas de JWT** — les sessions SQLite (opaque tokens) sont plus simples, révocables à tout moment, et ne nécessitent pas de secret à gérer.
 
-**Pas de permissions granulaires sur les quiz partagés** — le partage est en lecture seule pour les non-propriétaires. Si un propriétaire veut qu'un collègue modifie son quiz, il peut le dupliquer dans sa bibliothèque via l'import/export. Ce choix évite une complexité de gestion des droits disproportionnée par rapport à l'usage réel.
+**Pas de permissions granulaires sur les quiz partagés** — le partage est en lecture seule pour les non-propriétaires. Si un propriétaire veut qu'un collègue modifie son quiz, il peut le dupliquer dans sa bibliothèque via l'import/export. Ce choix évite une complexité de gestion des droits disproportionnée par rapport à l'usage réel. Un champ `shared_with_write` est prévu dans la roadmap (itération C).
 
 **Pas de multi-instance** — l'état du jeu est en mémoire (choix de Razzia conservé). Load-balancer sur plusieurs instances casserait le jeu.
 

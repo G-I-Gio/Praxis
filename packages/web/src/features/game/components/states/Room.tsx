@@ -32,7 +32,10 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
   useOnClickOutside({ ref: qrContentRef, handler: () => setQrOpen(false) })
 
   useEvent(EVENTS.MANAGER.NEW_PLAYER, (player) => {
-    setPlayerList([...playerList, player])
+    // Forme fonctionnelle pour éviter les closures stales lors de re-renders rapides
+    setPlayerList((prev) =>
+      prev.some((p) => p.id === player.id) ? prev : [...prev, player],
+    )
   })
 
   useEvent(EVENTS.MANAGER.PLAYER_AVATAR_UPDATED, ({ playerId, avatar }: { playerId: string; avatar?: string }) => {
@@ -40,11 +43,16 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
   })
 
   useEvent(EVENTS.MANAGER.REMOVE_PLAYER, (playerId) => {
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((prev) => prev.filter((p) => p.id !== playerId))
   })
 
   useEvent(EVENTS.MANAGER.PLAYER_KICKED, (playerId) => {
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((prev) => prev.filter((p) => p.id !== playerId))
+  })
+
+  // Retirer l'avatar d'un joueur qui se déconnecte en cours de partie
+  useEvent(EVENTS.GAME.PLAYER_LEFT, (socketId) => {
+    setPlayerList((prev) => prev.filter((p) => p.id !== socketId))
   })
 
   useEvent(EVENTS.GAME.TOTAL_PLAYERS, (total) => {

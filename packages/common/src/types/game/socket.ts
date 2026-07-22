@@ -48,6 +48,11 @@ export interface ServerToClientEvents {
     total: number
   }) => void
   [EVENTS.GAME.PLAYER_ANSWER]: (_count: number) => void
+  [EVENTS.GAME.PLAYER_JOINED]: (_player: { id: string; username: string; avatar?: string }) => void
+  [EVENTS.GAME.PLAYER_LEFT]: (_socketId: string) => void
+  [EVENTS.GAME.PLAYER_LIST]: (_players: { id: string; username: string; avatar?: string }[]) => void
+  [EVENTS.GAME.PLAYER_ANSWERED]: (_player: { id: string; username: string; avatar?: string }) => void
+  [EVENTS.MANAGER.PLAYER_AVATAR_UPDATED]: (_data: { playerId: string; avatar?: string }) => void
 
   // Player events
   [EVENTS.PLAYER.CHECK_PIN_RESULT]: (_data: { valid: boolean }) => void
@@ -129,6 +134,8 @@ export interface ClientToServerEvents {
   [EVENTS.PLAYER.SELECTED_ANSWER]: (
     _message: MessageWithoutStatus<{ answerKeys: number[] }>,
   ) => void
+  [EVENTS.PLAYER.UPDATE_AVATAR]: (_message: { gameId: string; avatar?: string }) => void
+  [EVENTS.PLAYER.REQUEST_PLAYER_LIST]: (_message: { gameId: string }) => void
 
   // Results actions
   [EVENTS.RESULTS.GET]: (_id: string) => void

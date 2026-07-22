@@ -6,6 +6,42 @@ Historique des versions de Praxis. Les dates correspondent aux releases GitHub.
 
 ---
 
+## v0.0.3.2 — Médias et sécurité (22 juillet 2026)
+
+### Nouvelles fonctionnalités
+
+- **Bibliothèque de médias** — upload d’images, vidéos et sons (jpg/png/gif/webp/mp4/webm/mp3/ogg/wav), déduplication automatique par SHA-256, visibilité privé/partagé/public, onglet dédié dans le dashboard
+- **Médias dans les questions** — intégration de médias (bibliothèque ou URL externe) dans l’éditeur de quiz, affichage plein écran pendant la partie
+- **Export ZIP quiz+médias** — `GET /api/quizzes/:id/export?format=zip` exporte le quiz et tous ses médias référencés dans une archive prête au transfert
+- **Import ZIP** — `POST /api/quizzes/import` accepte un ZIP quiz+médias et reconstruit automatiquement les références
+- **Accès médias en partie** — `GET /media/:gameId/:hash.:ext` sert les médias aux joueurs uniquement pendant une partie active (double vérification : partie active + hash autorisé)
+
+### Correctifs
+
+- **Éditeur de quiz — barre latérale** — les miniatures d’images dans la liste des questions n’affichaient pas les médias issus de la bibliothèque (URL `media:<uuid>` non résolue en `/api/media/<uuid>/file`) ; corrigé
+- **Sécurité — cookie de session** — ajout du flag `Secure` (transmission HTTPS uniquement) ; désactivable via `COOKIE_SECURE=false` pour le développement local HTTP
+- **Sécurité — CORS** — suppression des headers `Access-Control-Allow-Origin: *` et `Access-Control-Allow-Credentials: true` contradictoires (combinaison rejetée par les navigateurs, inutile en same-origin)
+- **Sécurité — import ZIP** — ajout d’une limite mémoire sur le buffer ZIP avant décompression pour prévenir les ZIP bombs (`MAX_MEDIA_SIZE × 5`, soit 100 Mo par défaut)
+
+### Variables d’environnement
+
+- `MAX_MEDIA_SIZE` — taille max par fichier média en Mo (défaut : `20`, indépendant de `MAX_UPLOAD_SIZE`)
+- `COOKIE_SECURE` — flag Secure sur le cookie de session (défaut : `true`)
+- `KNOWN_PROXIES` — IPs/CIDRs des reverse-proxies de confiance pour la résolution de l’IP réelle
+
+### Backend
+
+- `GET /api/media` — liste des médias accessibles
+- `POST /api/media/upload` — upload multipart avec validation magic bytes
+- `GET /api/media/:id` — métadonnées d’un média
+- `GET /api/media/:id/file` — stream inline avec support Range (lecture vidéo/audio)
+- `GET /api/media/:id/download` — téléchargement forcé
+- `PATCH /api/media/:id/visibility` — modifier la visibilité
+- `DELETE /api/media/:id` — suppression (bloquée si le média est référencé par un quiz)
+- `GET /media/:gameId/:hash.:ext` — accès public médias en partie (sans authentification)
+
+---
+
 ## v0.0.3.1 — Consolidation (19 juillet 2026)
 
 ### Correctifs

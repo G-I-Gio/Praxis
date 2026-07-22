@@ -6,6 +6,42 @@ Version history for Praxis. Dates correspond to GitHub releases.
 
 ---
 
+## v0.0.3.2 — Media and security (22 July 2026)
+
+### New features
+
+- **Media library** — upload images, videos and sounds (jpg/png/gif/webp/mp4/webm/mp3/ogg/wav), automatic SHA-256 deduplication, private/shared/public visibility, dedicated tab in the dashboard
+- **Media in questions** — attach media (from the library or external URL) in the quiz editor, displayed full-screen during the game
+- **ZIP export quiz+media** — `GET /api/quizzes/:id/export?format=zip` exports the quiz and all its referenced media in a ready-to-transfer archive
+- **ZIP import** — `POST /api/quizzes/import` accepts a quiz+media ZIP and automatically rebuilds the references
+- **Media access during games** — `GET /media/:gameId/:hash.:ext` serves media to players only during an active game (double check: active game + authorised hash)
+
+### Bug fixes
+
+- **Quiz editor — sidebar** — image thumbnails in the question list did not display media from the library (URL `media:<uuid>` was not resolved to `/api/media/<uuid>/file`); fixed
+- **Security — session cookie** — added `Secure` flag (HTTPS-only transmission); can be disabled via `COOKIE_SECURE=false` for local HTTP development
+- **Security — CORS** — removed contradictory `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Credentials: true` headers (combination rejected by browsers, unnecessary in same-origin context)
+- **Security — ZIP import** — added a memory limit on the ZIP buffer before decompression to prevent ZIP bombs (`MAX_MEDIA_SIZE × 5`, i.e. 100 MB by default)
+
+### Environment variables
+
+- `MAX_MEDIA_SIZE` — maximum size per media file in MB (default: `20`, independent of `MAX_UPLOAD_SIZE`)
+- `COOKIE_SECURE` — Secure flag on the session cookie (default: `true`)
+- `KNOWN_PROXIES` — IPs/CIDRs of trusted reverse proxies for real IP resolution
+
+### Backend
+
+- `GET /api/media` — list accessible media
+- `POST /api/media/upload` — multipart upload with magic bytes validation
+- `GET /api/media/:id` — media metadata
+- `GET /api/media/:id/file` — inline stream with Range support (video/audio playback)
+- `GET /api/media/:id/download` — forced download
+- `PATCH /api/media/:id/visibility` — update visibility
+- `DELETE /api/media/:id` — deletion (blocked if the media is referenced by a quiz)
+- `GET /media/:gameId/:hash.:ext` — public media access during games (no authentication)
+
+---
+
 ## v0.0.3.1 — Consolidation (19 July 2026)
 
 ### Bug fixes

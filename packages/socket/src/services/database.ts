@@ -253,3 +253,334 @@ export const closeDatabase = (): void => {
     logger.info("Database closed")
   }
 }
+
+// ── Médias ───────────────────────────────────────────────────────────────────
+
+export interface DbMediaFile {
+  hash:       string   // SHA256 hex 64 chars
+  ext:        string   // sans point : "jpg", "mp4"
+  mime_type:  string
+  size:       number
+  ref_count:  number
+  created_at: number
+}
+
+export interface DbMedia {
+  id:            string
+  owner_id:      string | null
+  parent_id:     string | null   // réservé versionnage futur
+  hash:          string
+  original_name: string
+  visibility:    "private" | "public" | "shared"
+  shared_with:   string          // JSON array
+  created_at:    number
+}
+
+export interface DbQuizMedia {
+  quiz_id:  string
+  media_id: string
+}
+
+export interface MediaRef {
+  quiz_id:    string
+  subject:    string | null  // null si quiz d'un autre manager
+  owner_name: string | null  // null si quiz du manager courant
+  own:        boolean
+}
+
+export interface MediaEntry {
+  id:            string
+  owner_id:      string | null
+  hash:          string
+  ext:           string
+  mime_type:     string
+  size:          number
+  original_name: string
+  visibility:    "private" | "public" | "shared"
+  shared_with:   string[]
+  created_at:    number
+  referenced_by: MediaRef[]
+}
+
+// Migration : appelée au démarrage depuis createHttpServer()
+export const migrateMediaTables = (): void => {
+  const database = getDb()
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS media_files (
+      hash       TEXT PRIMARY KEY,
+      ext        TEXT NOT NULL,
+      mime_type  TEXT NOT NULL,
+      size       INTEGER NOT NULL,
+      ref_count  INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    )
+  `)
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS media (
+      id            TEXT PRIMARY KEY,
+      owner_id      TEXT,
+      parent_id     TEXT,
+      hash          TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      visibility    TEXT NOT NULL DEFAULT 'private'
+                    CHECK (visibility IN ('private','public','shared')),
+      shared_with   TEXT NOT NULL DEFAULT '[]',
+      created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+      FOREIGN KEY (owner_id)  REFERENCES managers(id) ON DELETE SET NULL,
+      FOREIGN KEY (parent_id) REFERENCES media(id)    ON DELETE SET NULL,
+      FOREIGN KEY (hash)      REFERENCES media_files(hash)
+    )
+  `)
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS quiz_media (
+      quiz_id   TEXT NOT NULL,
+      media_id  TEXT NOT NULL,
+      PRIMARY KEY (quiz_id, media_id),
+      FOREIGN KEY (quiz_id)  REFERENCES quizzes(id) ON DELETE CASCADE,
+      FOREIGN KEY (media_id) REFERENCES media(id)
+    )
+  `)
+
+  logger.info("Media tables ready")
+}
+
+// ── Permissions médias ───────────────────────────────────────────────────────
+
+export const canReadMedia = (
+  m: DbMedia,
+  managerId: string,
+  role: string,
+): boolean => {
+  if (role === "superadmin") return true
+  if (m.owner_id === managerId) return true
+  if (m.visibility === "public") return true
+  if (
+    m.visibility === "shared" &&
+    (JSON.parse(m.shared_with) as string[]).includes(managerId)
+  ) return true
+  return false
+}
+
+export const canWriteMedia = (
+  m: DbMedia,
+  managerId: string,
+  role: string,
+): boolean => {
+  if (role === "superadmin") return true
+  return m.owner_id === managerId
+}
+
+// ── CRUD médias ──────────────────────────────────────────────────────────────
+
+// Construit la liste referenced_by pour un média
+const buildReferencedBy = (
+  mediaId: string,
+  managerId: string,
+): MediaRef[] => {
+  const db = getDb()
+
+  const rows = db.prepare(`
+    SELECT qm.quiz_id, q.subject, q.owner_id, m.username as owner_name
+    FROM quiz_media qm
+    JOIN quizzes q ON q.id = qm.quiz_id
+    JOIN managers m ON m.id = q.owner_id
+    WHERE qm.media_id = ?
+  `).all(mediaId) as {
+    quiz_id: string
+    subject: string
+    owner_id: string
+    owner_name: string
+  }[]
+
+  return rows.map((r) => ({
+    quiz_id:    r.quiz_id,
+    subject:    r.owner_id === managerId ? r.subject : null,
+    owner_name: r.owner_id === managerId ? null : r.owner_name,
+    own:        r.owner_id === managerId,
+  }))
+}
+
+const serializeMedia = (
+  m: DbMedia,
+  f: DbMediaFile,
+  managerId: string,
+): MediaEntry => ({
+  id:            m.id,
+  owner_id:      m.owner_id,
+  hash:          m.hash,
+  ext:           f.ext,
+  mime_type:     f.mime_type,
+  size:          f.size,
+  original_name: m.original_name,
+  visibility:    m.visibility,
+  shared_with:   JSON.parse(m.shared_with) as string[],
+  created_at:    m.created_at,
+  referenced_by: buildReferencedBy(m.id, managerId),
+})
+
+export const listMedia = (
+  managerId: string,
+  role: string,
+): MediaEntry[] => {
+  const db = getDb()
+  const all = db.prepare("SELECT * FROM media ORDER BY created_at DESC").all() as DbMedia[]
+
+  return all
+    .filter((m) => canReadMedia(m, managerId, role))
+    .map((m) => {
+      const f = db.prepare("SELECT * FROM media_files WHERE hash = ?").get(m.hash) as DbMediaFile
+      return serializeMedia(m, f, managerId)
+    })
+}
+
+export const getMediaById = (
+  id: string,
+  managerId: string,
+): MediaEntry | null => {
+  const db = getDb()
+  const m = db.prepare("SELECT * FROM media WHERE id = ?").get(id) as DbMedia | undefined
+  if (!m) return null
+  const f = db.prepare("SELECT * FROM media_files WHERE hash = ?").get(m.hash) as DbMediaFile | undefined
+  if (!f) return null
+  return serializeMedia(m, f, managerId)
+}
+
+export const getMediaRow = (id: string): DbMedia | null =>
+  (getDb().prepare("SELECT * FROM media WHERE id = ?").get(id) as DbMedia | undefined) ?? null
+
+export const getMediaFileByHash = (hash: string): DbMediaFile | null =>
+  (getDb().prepare("SELECT * FROM media_files WHERE hash = ?").get(hash) as DbMediaFile | undefined) ?? null
+
+// Créer ou réutiliser media_files (déduplication), créer media
+export const createMediaEntry = (opts: {
+  hash:         string
+  ext:          string
+  mimeType:     string
+  size:         number
+  originalName: string
+  ownerId:      string
+  visibility?:  "private" | "public" | "shared"
+}): string => {
+  const db     = getDb()
+  const id     = randomUUID()
+  const vis    = opts.visibility ?? "private"
+
+  // Déduplication : media_files
+  const existing = db.prepare("SELECT hash FROM media_files WHERE hash = ?").get(opts.hash)
+  if (!existing) {
+    db.prepare(
+      "INSERT INTO media_files (hash, ext, mime_type, size) VALUES (?, ?, ?, ?)"
+    ).run(opts.hash, opts.ext, opts.mimeType, opts.size)
+  }
+  db.prepare("UPDATE media_files SET ref_count = ref_count + 1 WHERE hash = ?").run(opts.hash)
+
+  db.prepare(
+    `INSERT INTO media (id, owner_id, hash, original_name, visibility, shared_with)
+     VALUES (?, ?, ?, ?, ?, '[]')`
+  ).run(id, opts.ownerId, opts.hash, opts.originalName, vis)
+
+  return id
+}
+
+export const deleteMediaEntry = (id: string): {
+  ok: boolean
+  blocked?: MediaRef[]
+  physicallyDeleted?: boolean
+  hash?: string
+} => {
+  const db = getDb()
+
+  const m = db.prepare("SELECT * FROM media WHERE id = ?").get(id) as DbMedia | undefined
+  if (!m) return { ok: false }
+
+  // Vérifier les références quiz
+  const refs = buildReferencedBy(id, "")
+  if (refs.length > 0) {
+    return { ok: false, blocked: refs }
+  }
+
+  // Décrémenter ref_count
+  db.prepare("UPDATE media_files SET ref_count = ref_count - 1 WHERE hash = ?").run(m.hash)
+
+  // Supprimer l'entrée logique
+  db.prepare("DELETE FROM media WHERE id = ?").run(id)
+
+  // Supprimer physiquement si ref_count == 0
+  const file = db.prepare("SELECT ref_count, hash FROM media_files WHERE hash = ?")
+    .get(m.hash) as { ref_count: number; hash: string } | undefined
+
+  let physicallyDeleted = false
+  if (file && file.ref_count <= 0) {
+    db.prepare("DELETE FROM media_files WHERE hash = ?").run(m.hash)
+    physicallyDeleted = true
+  }
+
+  return { ok: true, physicallyDeleted, hash: m.hash }
+}
+
+export const updateMediaVisibility = (
+  id: string,
+  visibility: "private" | "public" | "shared",
+  sharedWith: string[],
+): void => {
+  getDb()
+    .prepare("UPDATE media SET visibility = ?, shared_with = ? WHERE id = ?")
+    .run(visibility, JSON.stringify(sharedWith), id)
+}
+
+// Enregistre les références quiz ↔ media à partir du JSON des questions
+export const syncQuizMedia = (quizId: string, questions: unknown[]): void => {
+  const db = getDb()
+
+  // Supprimer les anciennes références
+  db.prepare("DELETE FROM quiz_media WHERE quiz_id = ?").run(quizId)
+
+  // Extraire et insérer les nouvelles
+  const mediaRefs = extractMediaRefs(questions)
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO quiz_media (quiz_id, media_id) VALUES (?, ?)"
+  )
+  for (const mediaId of mediaRefs) {
+    // Vérifier que le média existe
+    const exists = db.prepare("SELECT id FROM media WHERE id = ?").get(mediaId)
+    if (exists) insert.run(quizId, mediaId)
+  }
+}
+
+// Extrait les UUIDs media:<uuid> depuis les questions
+export const extractMediaRefs = (questions: unknown[]): string[] => {
+  const refs: string[] = []
+  for (const q of questions) {
+    const question = q as Record<string, unknown>
+    const media = question.media as { url?: string } | undefined
+    if (media?.url?.startsWith("media:")) {
+      refs.push(media.url.slice("media:".length))
+    }
+  }
+  return refs
+}
+
+// Résout media:<uuid> → { hash, ext } pour la route partie
+export const resolveMediaUrl = (
+  mediaId: string,
+): { hash: string; ext: string } | null => {
+  const db = getDb()
+  const row = db.prepare(`
+    SELECT mf.hash, mf.ext
+    FROM media m
+    JOIN media_files mf ON mf.hash = m.hash
+    WHERE m.id = ?
+  `).get(mediaId) as { hash: string; ext: string } | undefined
+  return row ?? null
+}
+
+// Taille totale des fichiers physiques (pour le superadmin)
+export const getTotalMediaStorage = (): number => {
+  const row = getDb()
+    .prepare("SELECT COALESCE(SUM(size), 0) as total FROM media_files")
+    .get() as { total: number }
+  return row.total
+}

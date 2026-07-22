@@ -38,11 +38,11 @@
     "mediaUrlPlaceholder": "Entrez l'URL...",
     "placeholder": "Commencez à écrire votre question..."
   },
-  "quizzSaved": "Quizz enregistré avec succès",
-  "quizzUpdated": "Quizz mis à jour avec succès",
+  "quizzSaved": "Quiz enregistré avec succès",
+  "quizzUpdated": "Quiz mis à jour avec succès",
   "questionType": {
     "single": "Choix unique",
     "multi": "Choix multiple"
   },
-  "titleQuizzPlaceholder": "Titre du quizz..."
+  "titleQuizzPlaceholder": "Titre du quiz..."
 }

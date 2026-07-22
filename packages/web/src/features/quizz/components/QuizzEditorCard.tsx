@@ -7,10 +7,13 @@ import { Music, Trash2, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { twMerge } from "tailwind-merge"
 
+const resolveMediaUrl = (url: string): string =>
+  url.startsWith("media:") ? `/api/media/${url.slice("media:".length)}/file` : url
+
 const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
-      <img src={media.url} className="mx-auto max-h-14 w-auto rounded-md" />
+      <img src={resolveMediaUrl(media.url)} className="mx-auto max-h-14 w-auto rounded-md" />
     )
   }
 

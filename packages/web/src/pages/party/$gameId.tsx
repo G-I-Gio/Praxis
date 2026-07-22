@@ -22,7 +22,7 @@ const PlayerGamePage = () => {
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })
   const {
     status, setPlayer, setGameId, setStatus, reset,
-    setPlayers, addOrUpdatePlayer,
+    setPlayers, addOrUpdatePlayer, removePlayer,
     setAnsweredPlayers, addAnsweredPlayer,
   } = usePlayerStore()
   const { setQuestionStates } = useQuestionStore()
@@ -73,6 +73,10 @@ const PlayerGamePage = () => {
 
   useEvent(EVENTS.GAME.PLAYER_JOINED, (player) => {
     addOrUpdatePlayer(player)
+  })
+
+  useEvent(EVENTS.GAME.PLAYER_LEFT, (socketId) => {
+    removePlayer(socketId)
   })
 
   useEvent(EVENTS.GAME.PLAYER_ANSWERED, (player) => {

@@ -48,12 +48,28 @@ export const useQuizApi = () => {
   )
 
   const importQuiz = useCallback(
-    async (data: unknown) => {
-      await apiFetch("/api/quizzes/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
+    async (_data: unknown, isZip: boolean, rawFile: File) => {
+      if (isZip) {
+        // Import ZIP — envoi binaire
+        const buf = await rawFile.arrayBuffer()
+        const res = await fetch("/api/quizzes/import", {
+          method:      "POST",
+          credentials: "include",
+          headers:     { "Content-Type": "application/zip" },
+          body:        buf,
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` })) as { error?: string }
+          throw new Error(err.error ?? `HTTP ${res.status}`)
+        }
+      } else {
+        // Import JSON legacy
+        await apiFetch("/api/quizzes/import", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(_data),
+        })
+      }
       reload()
     },
     [reload],
@@ -65,10 +81,12 @@ export const useQuizApi = () => {
     })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     const blob = await r.blob()
+    const isZip = r.headers.get("Content-Type")?.includes("zip") ?? false
+    const ext = isZip ? "zip" : "json"
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${subject}.json`
+    a.download = `${subject}.${ext}`
     a.click()
     URL.revokeObjectURL(url)
   }, [])
