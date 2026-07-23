@@ -1001,6 +1001,275 @@ const handleDeleteResult = requireAuth((req, res, manager) => {
   return json(res, 200, { ok: true })
 })
 
+
+// GET /api/results/:id/export?format=json|csv&player=<username>&ranking=final|temporal
+// Generates and streams a result export. No audit log needed (read-only).
+const handleExportResult = requireAuth((req, res, manager) => {
+  const id = extractParam(req.url!, "/api/results/", 1)
+  if (!id) return json(res, 400, { error: "Missing id" })
+
+  const row = getResultRowDb(id)
+  if (!row) return json(res, 404, { error: "Result not found" })
+  if (!canReadResult(row, manager.id, manager.role))
+    return json(res, 403, { error: "Forbidden" })
+
+  const result = getResultDb(id)
+  const urlObj = new URL(req.url!, "http://localhost")
+  const format  = urlObj.searchParams.get("format") ?? "json"
+  const player  = urlObj.searchParams.get("player") ?? null
+  const ranking = urlObj.searchParams.get("ranking") ?? "final"
+
+  // --- Helpers ---
+  const slugify = (s: string): string =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/gu, "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/gu, "-")
+      .replace(/[^a-z0-9-]/gu, "")
+      .slice(0, 40)
+
+  const formatDateSlug = (iso: string): string => {
+    const d = new Date(iso)
+    const pad = (n: number) => String(n).padStart(2, "0")
+    return (
+      `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` +
+      `-${pad(d.getHours())}${pad(d.getMinutes())}`
+    )
+  }
+
+  const fmtTime = (ms: number | null | undefined): string => {
+    if (ms == null) return ""
+    return (ms / 1000).toFixed(3)
+  }
+
+  const fmtNum = (n: number | null | undefined): string | number =>
+    n == null ? "" : n
+
+  const isCorrectAnswer = (
+    answerIds: number[] | null,
+    solutions: number[],
+  ): boolean =>
+    answerIds != null && answerIds.some((i) => solutions.includes(i))
+
+  // Use app name via the same helper used by all branding routes (CONFIG_PATH aware)
+  const fs = require("fs") as typeof import("fs")
+  let appName = "praxis"
+  try {
+    const brandingFile = getBrandingPath("theme.json")
+    if (fs.existsSync(brandingFile)) {
+      const theme = JSON.parse(fs.readFileSync(brandingFile, "utf-8")) as {
+        appName?: string
+      }
+      if (theme.appName) appName = slugify(theme.appName)
+    }
+  } catch {
+    // fallback to "praxis"
+  }
+
+  const subjectSlug = slugify(result.subject)
+  const dateStr = formatDateSlug(result.date)
+
+  // --- JSON export ---
+  if (format === "json") {
+    const filename = `${appName}-${subjectSlug}-${dateStr}.json`
+    res.setHeader("Content-Type", "application/json; charset=utf-8")
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`,
+    )
+    res.writeHead(200)
+    res.end(JSON.stringify(result, null, 2))
+    return
+  }
+
+  // --- CSV helpers ---
+  const escapeCsv = (v: string | number | null | undefined): string => {
+    if (v == null) return ""
+    const s = String(v)
+    if (s.includes(',') || s.includes('"') || s.includes('\n'))
+      return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+
+  const row2csv = (cols: (string | number | null | undefined)[]): string =>
+    cols.map(escapeCsv).join(",")
+
+  // --- Point progression helpers ---
+  // Rebuild per-player points timeline from leaderboardSnapshots.
+  // For pre-v0.0.4 results without snapshots, all point columns are empty.
+  const getSnap = (
+    q: (typeof result.questions)[0],
+    username: string,
+  ) => q.leaderboardSnapshot?.find((e) => e.username === username)
+
+  const getRankCol = (
+    q: (typeof result.questions)[0],
+    username: string,
+    finalRank: number | string,
+  ): number | string => {
+    if (ranking === "temporal") {
+      return getSnap(q, username)?.rank ?? ""
+    }
+    return finalRank
+  }
+
+  // --- CSV player export ---
+  if (player) {
+    const usernameSlug = slugify(player)
+    const filename = `${appName}-${subjectSlug}-${usernameSlug}-${dateStr}.csv`
+    res.setHeader("Content-Type", "text/csv; charset=utf-8")
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`,
+    )
+    res.writeHead(200)
+
+    const headers = [
+      "Question",
+      "Reponses disponibles",
+      "Reponse(s) correcte(s)",
+      "Reponse(s) donnee(s)",
+      "Correct",
+      "Temps (s)",
+      "Points avant",
+      "Points gagnes",
+      "Points apres",
+      ranking === "temporal" ? "Classement intermediaire" : "Classement final",
+    ]
+    let csv = row2csv(headers) + "\n"
+
+    const finalRank =
+      result.players.find((p) => p.username === player)?.rank ?? ""
+
+    let correct = 0
+    let incorrect = 0
+    let noAnswer = 0
+    const responseTimes: number[] = []
+
+    result.questions.forEach((q) => {
+      const pa = q.playerAnswers.find((a) => a.playerName === player)
+      const answered = pa?.answerIds != null && pa.answerIds.length > 0
+      const correct_ = isCorrectAnswer(pa?.answerIds ?? null, q.solutions)
+
+      if (!answered) noAnswer++
+      else if (correct_) correct++
+      else incorrect++
+
+      if (pa?.responseTime != null) responseTimes.push(pa.responseTime)
+
+      const givenAnswers = answered
+        ? (pa!.answerIds ?? []).map((i) => q.answers[i] ?? "").join(" | ")
+        : ""
+      const correctAnswers = q.solutions.map((i) => q.answers[i] ?? "").join(" | ")
+
+      const snap = getSnap(q, player)
+      const pointsAfter  = fmtNum(snap?.pointsAfter)
+      const pointsGained = fmtNum(snap?.pointsGained)
+      const pointsBefore =
+        snap != null && snap.pointsAfter != null && snap.pointsGained != null
+          ? snap.pointsAfter - snap.pointsGained
+          : ""
+
+      csv += row2csv([
+        q.question,
+        q.answers.join(" | "),
+        correctAnswers,
+        givenAnswers,
+        answered ? (correct_ ? "Oui" : "Non") : "",
+        fmtTime(pa?.responseTime),
+        pointsBefore,
+        pointsGained,
+        pointsAfter,
+        getRankCol(q, player, finalRank),
+      ]) + "\n"
+    })
+
+    // Summary
+    const avgTimeMs = responseTimes.length > 0
+      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+      : null
+    const avgTime = avgTimeMs != null ? (avgTimeMs / 1000).toFixed(3) : ""
+
+    csv += "\n"
+    csv += row2csv([
+      "SYNTHESE", "", "", "", "", `Temps moyen: ${avgTime}s`, "", "", "", "",
+    ]) + "\n"
+    csv += row2csv([
+      `Bonnes: ${correct}`,
+      `Mauvaises: ${incorrect}`,
+      `Sans reponse: ${noAnswer}`,
+      "", "", "", "", "", "", "",
+    ]) + "\n"
+
+    res.end(csv)
+    return
+  }
+
+  // --- CSV global export ---
+  const filename = `${appName}-${subjectSlug}-${dateStr}.csv`
+  res.setHeader("Content-Type", "text/csv; charset=utf-8")
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${filename}"`,
+  )
+  res.writeHead(200)
+
+  const headers = [
+    "Joueur",
+    "Question",
+    "Reponses disponibles",
+    "Reponse(s) correcte(s)",
+    "Reponse(s) donnee(s)",
+    "Correct",
+    "Temps (s)",
+    "Points avant",
+    "Points gagnes",
+    "Points apres",
+    ranking === "temporal" ? "Classement intermediaire" : "Classement final",
+  ]
+  let csv = row2csv(headers) + "\n"
+
+  result.questions.forEach((q) => {
+    q.playerAnswers.forEach((pa) => {
+      const answered = pa.answerIds != null && pa.answerIds.length > 0
+      const correct_ = isCorrectAnswer(pa.answerIds, q.solutions)
+      const givenAnswers = answered
+        ? (pa.answerIds ?? []).map((i) => q.answers[i] ?? "").join(" | ")
+        : ""
+      const correctAnswers = q.solutions.map((i) => q.answers[i] ?? "").join(" | ")
+
+      const finalRank =
+        result.players.find((p) => p.username === pa.playerName)?.rank ?? ""
+
+      const snap = getSnap(q, pa.playerName)
+      const pointsAfter  = fmtNum(snap?.pointsAfter)
+      const pointsGained = fmtNum(snap?.pointsGained)
+      const pointsBefore =
+        snap != null && snap.pointsAfter != null && snap.pointsGained != null
+          ? snap.pointsAfter - snap.pointsGained
+          : ""
+
+      csv += row2csv([
+        pa.playerName,
+        q.question,
+        q.answers.join(" | "),
+        correctAnswers,
+        givenAnswers,
+        answered ? (correct_ ? "Oui" : "Non") : "",
+        fmtTime(pa.responseTime),
+        pointsBefore,
+        pointsGained,
+        pointsAfter,
+        getRankCol(q, pa.playerName, finalRank),
+      ]) + "\n"
+    })
+  })
+
+  res.end(csv)
+})
+
 // PATCH /api/quizzes/:id/visibility
 const handleUpdateQuizVisibility = requireAuth(async (req, res, manager) => {
   const id = extractParam(req.url!, "/api/quizzes/", 1)
@@ -1536,6 +1805,7 @@ const resolveHandler = (url: string, method: string): Handler | null => {
     const [id, sub] = rest.split("/")
 
     if (id && sub === "visibility" && method === "PATCH") return handleUpdateResultVisibility
+    if (id && sub === "export" && method === "GET") return handleExportResult
     if (id && !sub) {
       if (method === "GET") return handleGetResult
       if (method === "PATCH") return handleRenameResult

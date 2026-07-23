@@ -34,7 +34,8 @@
       "correctIncorrect": "Richtig / Falsch",
       "incorrect": " Falsch",
       "player": "Spieler",
-      "points": "Punkte"
+      "points": "Punkte",
+      "responseTime": "Zeit (s)"
     },
     "playerCount": "{{count}} Spieler",
     "timeLimitSuffix": "s Zeitlimit",
@@ -49,7 +50,30 @@
     "searchNoResult": "Kein Ergebnis für \"{{search}}\"",
     "renameTitle": "Umbenennen",
     "shareTitle": "Freigabe verwalten",
-    "visibilityUpdated": "Sichtbarkeit → {{label}}"
+    "visibilityUpdated": "Sichtbarkeit → {{label}}",
+    "export": {
+      "title": "Ergebnis exportieren",
+      "description": "Wahlen Sie das Exportformat fur dieses Ergebnis.",
+      "json": "Als JSON exportieren",
+      "csv": "Als CSV exportieren",
+      "rankingLabel": "Enthaltenes Ranking",
+      "rankingFinal": "Endranking",
+      "rankingTemporal": "Zwischenrankings (Frage fur Frage)",
+      "playerTitle": "Spieler exportieren",
+      "playerDescription": "CSV-Export der Antworten von {{username}}.",
+      "playerCsv": "Als CSV exportieren",
+      "buttonTitle": "Exportieren"
+    },
+    "tabs": {
+      "questions": "Fragen",
+      "players": "Spieler"
+    },
+    "players": {
+      "rank": "Rang",
+      "username": "Spieler",
+      "points": "Punkte",
+      "exportTitle": "Diesen Spieler exportieren"
+    }
   },
   "tabs": {
     "play": "Spielen",

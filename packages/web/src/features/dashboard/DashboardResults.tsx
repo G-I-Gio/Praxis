@@ -1,10 +1,11 @@
 import type { GameResult } from "@razzia/common/types/game"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import Input from "@razzia/web/components/Input"
+import ExportModal from "@razzia/web/features/manager/components/ResultModal/ExportModal"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
 import ShareResultModal from "@razzia/web/features/dashboard/ShareResultModal"
 import { useAllManagers } from "@razzia/web/features/dashboard/useAllManagers"
-import { Globe, Lock, Pencil, Search, Share2, Trash2 } from "lucide-react"
+import { Download, Globe, Lock, Pencil, Search, Share2, Trash2 } from "lucide-react"
 import { useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -59,8 +60,10 @@ const DashboardResults = ({
 }: Props) => {
   const { t } = useTranslation()
   const [selectedResult, setSelectedResult] = useState<GameResult | null>(null)
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
   const [sharingResult, setSharingResult] = useState<ApiResultMeta | null>(null)
   const [search, setSearch] = useState("")
+  const [exportingResultId, setExportingResultId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -69,6 +72,16 @@ const DashboardResults = ({
     private: t("manager:result.visibility.private"),
     public:  t("manager:result.visibility.public"),
     shared:  t("manager:result.visibility.shared"),
+  }
+
+  const handleExportResult = (
+    id: string,
+    format: "json" | "csv",
+    ranking: "final" | "temporal",
+  ) => {
+    const params = new URLSearchParams({ format, ranking })
+    window.location.href = `/api/results/${id}/export?${params.toString()}`
+    setExportingResultId(null)
   }
 
   const filteredResults = results.filter((r) => {
@@ -86,7 +99,9 @@ const DashboardResults = ({
 
   const handleOpen = async (id: string) => {
     try {
-      setSelectedResult(await onGetResult(id))
+      const r = await onGetResult(id)
+      setSelectedResult(r)
+      setSelectedResultId(id)
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -186,6 +201,14 @@ const DashboardResults = ({
                   <>
                     <button
                       className="text-muted-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
+                      title={t("manager:result.export.buttonTitle")}
+                      onClick={() => setExportingResultId(r.id)}
+                    >
+                      <Download className="size-3.5" />
+                    </button>
+
+                    <button
+                      className="text-muted-foreground hover:bg-accent-foreground/10 rounded-sm p-2"
                       title={t("manager:result.renameTitle")}
                       onClick={() => startEdit(r)}
                     >
@@ -247,7 +270,17 @@ const DashboardResults = ({
       {selectedResult && (
         <ResultModal
           result={selectedResult}
-          onClose={() => setSelectedResult(null)}
+          resultId={selectedResultId!}
+          onClose={() => { setSelectedResult(null); setSelectedResultId(null) }}
+        />
+      )}
+
+      {exportingResultId && (
+        <ExportModal
+          onExport={(format, ranking) =>
+            handleExportResult(exportingResultId, format, ranking)
+          }
+          onClose={() => setExportingResultId(null)}
         />
       )}
 

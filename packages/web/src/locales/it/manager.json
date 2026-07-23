@@ -34,7 +34,8 @@
       "correctIncorrect": "Corretta / Errata",
       "incorrect": " Errata",
       "player": "Giocatore",
-      "points": "Punti"
+      "points": "Punti",
+      "responseTime": "Tempo (s)"
     },
     "playerCount": "{{count}} giocatore/i",
     "timeLimitSuffix": "s limite di tempo",
@@ -49,7 +50,30 @@
     "searchNoResult": "Nessun risultato per \"{{search}}\"",
     "renameTitle": "Rinomina",
     "shareTitle": "Gestisci condivisione",
-    "visibilityUpdated": "Visibilità → {{label}}"
+    "visibilityUpdated": "Visibilità → {{label}}",
+    "export": {
+      "title": "Esporta risultato",
+      "description": "Scegli il formato di esportazione per questo risultato.",
+      "json": "Esporta come JSON",
+      "csv": "Esporta come CSV",
+      "rankingLabel": "Classifica inclusa",
+      "rankingFinal": "Classifica finale",
+      "rankingTemporal": "Classifiche intermedie (domanda per domanda)",
+      "playerTitle": "Esporta giocatore",
+      "playerDescription": "Esportazione CSV delle risposte di {{username}}.",
+      "playerCsv": "Esporta come CSV",
+      "buttonTitle": "Esporta"
+    },
+    "tabs": {
+      "questions": "Domande",
+      "players": "Giocatori"
+    },
+    "players": {
+      "rank": "Posizione",
+      "username": "Giocatore",
+      "points": "Punti",
+      "exportTitle": "Esporta questo giocatore"
+    }
   },
   "tabs": {
     "play": "Gioca",

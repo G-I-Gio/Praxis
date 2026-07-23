@@ -34,7 +34,8 @@
       "correctIncorrect": "正解 / 不正解",
       "incorrect": " 不正解",
       "player": "プレイヤー",
-      "points": "ポイント"
+      "points": "ポイント",
+      "responseTime": "時間（秒）"
     },
     "playerCount": "{{count}}人",
     "timeLimitSuffix": "秒制限",
@@ -49,7 +50,30 @@
     "searchNoResult": "「{{search}}」に一致する結果はありません",
     "renameTitle": "名称変更",
     "shareTitle": "共有を管理",
-    "visibilityUpdated": "公開設定 → {{label}}"
+    "visibilityUpdated": "公開設定 → {{label}}",
+    "export": {
+      "title": "結果をエクスポート",
+      "description": "この結果のエクスポート形式を選択してください。",
+      "json": "JSONでエクスポート",
+      "csv": "CSVでエクスポート",
+      "rankingLabel": "含めるランキング",
+      "rankingFinal": "最終ランキング",
+      "rankingTemporal": "中間ランキング（質問ごと）",
+      "playerTitle": "プレイヤーをエクスポート",
+      "playerDescription": "{{username}}の回答のCSVエクスポート。",
+      "playerCsv": "CSVでエクスポート",
+      "buttonTitle": "エクスポート"
+    },
+    "tabs": {
+      "questions": "質問",
+      "players": "プレイヤー"
+    },
+    "players": {
+      "rank": "ランク",
+      "username": "プレイヤー",
+      "points": "ポイント",
+      "exportTitle": "このプレイヤーをエクスポート"
+    }
   },
   "tabs": {
     "play": "プレイ",

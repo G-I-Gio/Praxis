@@ -7,6 +7,11 @@ import clsx from "clsx"
 import { Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
+const fmtTime = (ms: number | null | undefined): string => {
+  if (ms == null) return "-"
+  return (ms / 1000).toFixed(3) + "s"
+}
+
 const ResultModalTable = () => {
   const { questionResult, getPlayerPoints } = useResultModal()
   const { t } = useTranslation()
@@ -20,6 +25,7 @@ const ResultModalTable = () => {
           <th className="px-4 py-2.5">
             {t("manager:result.table.correctIncorrect")}
           </th>
+          <th className="px-4 py-2.5">{t("manager:result.table.responseTime")}</th>
           <th className="px-4 py-2.5 text-right">
             {t("manager:result.table.points")}
           </th>
@@ -41,6 +47,7 @@ const ResultModalTable = () => {
                     {pa.answerIds?.map((id) => (
                       <span
                         key={id}
+                        title={questionResult.answers[id]}
                         className={clsx(
                           "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
                           ANSWERS_COLORS[id % 4],
@@ -71,6 +78,9 @@ const ResultModalTable = () => {
                     {t("manager:result.table.incorrect")}
                   </span>
                 )}
+              </td>
+              <td className="text-muted-foreground px-4 py-2.5 text-sm tabular-nums">
+                {fmtTime(pa.responseTime)}
               </td>
               <td className="text-foreground px-4 py-2.5 text-right font-semibold">
                 {getPlayerPoints(pa.playerName)}

@@ -28,6 +28,7 @@ export interface Answer {
   playerId: string
   answerIds: number[]
   points: number
+  responseTime: number
 }
 
 export type QuestionMediaType =
@@ -72,10 +73,17 @@ export interface GameUpdateQuestion {
 export interface PlayerAnswerRecord {
   playerName: string
   answerIds: number[] | null
+  // Time in milliseconds between question start and player answer.
+  // null if the player did not answer. Undefined for results saved
+  // before v0.0.4 (backward-compatible).
+  responseTime: number | null | undefined
 }
 
 export type QuestionResult = Question & {
   playerAnswers: PlayerAnswerRecord[]
+  // Leaderboard snapshot after this question (rank -> username -> points).
+  // Used for "temporal" CSV export. Undefined for pre-v0.0.4 results.
+  leaderboardSnapshot?: Array<{ username: string; pointsAfter: number; pointsGained: number; rank: number }>
 }
 
 export interface GameResultPlayer {

@@ -199,13 +199,16 @@ export class RoundManager {
         const isCorrect = points > 0
         const penalty = !isCorrect && playerAnswer ? (question.penalty ?? 0) : 0
 
-        player.points = Math.max(0, player.points + points - penalty)
+        const pointsBefore = player.points
+        const gained = isCorrect ? points : -penalty
+        player.points = Math.max(0, pointsBefore + gained)
         player.streak = isCorrect ? player.streak + 1 : 0
 
         return {
           ...player,
           lastCorrect: isCorrect,
-          lastPoints: isCorrect ? points : -penalty,
+          lastPoints: gained,
+          pointsBefore,
         }
       })
       .sort((a, b) => b.points - a.points)
@@ -231,14 +234,24 @@ export class RoundManager {
       responses: answerCounts,
     })
 
+    const leaderboardSnapshot = sortedPlayers.map((p, i) => ({
+      username: p.username,
+      pointsAfter: p.points,
+      pointsGained: p.lastPoints ?? 0,
+      rank: i + 1,
+    }))
+
     this.questionsHistory.push({
       ...question,
-      playerAnswers: currentPlayers.map((player) => ({
-        playerName: player.username,
-        answerIds:
-          this.playersAnswers.find((a) => a.playerId === player.id)
-            ?.answerIds ?? null,
-      })),
+      playerAnswers: currentPlayers.map((player) => {
+        const pa = this.playersAnswers.find((a) => a.playerId === player.id)
+        return {
+          playerName: player.username,
+          answerIds: pa?.answerIds ?? null,
+          responseTime: pa?.responseTime ?? null,
+        }
+      }),
+      leaderboardSnapshot,
     })
 
     this.leaderboard = sortedPlayers
@@ -270,10 +283,13 @@ export class RoundManager {
       return timeToPoint(this.startTime, question)
     })()
 
+    const responseTime = Date.now() - this.startTime
+
     this.playersAnswers.push({
       playerId: player.id,
       answerIds,
       points,
+      responseTime,
     })
 
     this.opts.send(socket.id, STATUS.WAIT, {

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Praxis — Visualiseur de résultats</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* ── Tokens ─────────────────────────────────────────────────────────── */
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #151820;
+    --surface2:  #1c2030;
+    --border:    #252a3a;
+    --border2:   #2e3448;
+    --text:      #e8eaf2;
+    --muted:     #7a82a0;
+    --accent:    #5b8dee;
+    --accent2:   #3d6fd4;
+    --green:     #3ecf8e;
+    --red:       #f06070;
+    --yellow:    #f5c542;
+    --r:         8px;
+    --r2:        12px;
+    --mono:      'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans:      'Inter', system-ui, sans-serif;
+  }
+
+  /* ── Reset ───────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans);
+         min-height: 100vh; display: flex; flex-direction: column; }
+  button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+  input, select { font: inherit; }
+
+  /* ── Drop zone ───────────────────────────────────────────────────────── */
+  #dropzone {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 24px; padding: 40px;
+    border: 2px dashed var(--border2); border-radius: var(--r2);
+    margin: 32px; transition: border-color .2s, background .2s;
+    min-height: 60vh;
+  }
+  #dropzone.drag { border-color: var(--accent); background: rgba(91,141,238,.06); }
+  #dropzone svg { opacity: .35; }
+  #dropzone h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
+  #dropzone p  { color: var(--muted); font-size: .875rem; text-align: center; line-height: 1.6; }
+  #file-btn {
+    background: var(--accent); color: #fff; padding: 10px 22px;
+    border-radius: var(--r); font-weight: 600; font-size: .875rem;
+    transition: background .15s;
+  }
+  #file-btn:hover { background: var(--accent2); }
+  #file-input { display: none; }
+
+  /* ── App shell ───────────────────────────────────────────────────────── */
+  #app { display: none; flex-direction: column; flex: 1; }
+
+  /* ── Header ──────────────────────────────────────────────────────────── */
+  #hdr {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  #hdr-title { flex: 1; }
+  #hdr-title h2 { font-size: 1rem; font-weight: 700; }
+  #hdr-title span { font-size: .8rem; color: var(--muted); }
+  #hdr-back {
+    font-size: .8rem; color: var(--accent); padding: 6px 12px;
+    border: 1px solid var(--border2); border-radius: var(--r);
+    transition: background .15s;
+  }
+  #hdr-back:hover { background: var(--surface2); }
+  .badge {
+    font-size: .7rem; font-family: var(--mono); font-weight: 600;
+    padding: 3px 8px; border-radius: 20px; letter-spacing: .03em;
+  }
+  .badge-blue  { background: rgba(91,141,238,.15); color: var(--accent); }
+  .badge-green { background: rgba(62,207,142,.15); color: var(--green); }
+
+  /* ── Nav tabs ────────────────────────────────────────────────────────── */
+  #nav {
+    display: flex; gap: 2px; padding: 0 24px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .nav-btn {
+    padding: 12px 18px; font-size: .85rem; font-weight: 500; color: var(--muted);
+    border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+  }
+  .nav-btn.active { color: var(--text); border-color: var(--accent); }
+  .nav-btn:hover:not(.active) { color: var(--text); }
+
+  /* ── Content area ────────────────────────────────────────────────────── */
+  #content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r2); padding: 20px; margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); margin-bottom: 14px;
+  }
+
+  /* ── Grid layouts ────────────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Stat tiles ──────────────────────────────────────────────────────── */
+  .stat { background: var(--surface2); border: 1px solid var(--border);
+          border-radius: var(--r); padding: 14px 18px; }
+  .stat-label { font-size: .72rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; }
+  .stat-value { font-size: 1.5rem; font-weight: 700; font-family: var(--mono); }
+  .stat-sub   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── Podium ──────────────────────────────────────────────────────────── */
+  #podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 8px 0 4px; }
+  .podium-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .podium-name { font-size: .8rem; font-weight: 600; text-align: center; max-width: 80px;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .podium-pts  { font-size: .72rem; color: var(--muted); font-family: var(--mono); }
+  .podium-bar  { width: 64px; border-radius: 6px 6px 0 0; display: flex; align-items: center;
+                 justify-content: center; font-size: 1.1rem; }
+  .p1 .podium-bar { height: 90px; background: linear-gradient(180deg,#f5c54288,#f5c54222); border: 1px solid #f5c54266; }
+  .p2 .podium-bar { height: 65px; background: linear-gradient(180deg,#aab4cc55,#aab4cc15); border: 1px solid #aab4cc44; }
+  .p3 .podium-bar { height: 48px; background: linear-gradient(180deg,#c87d4055,#c87d4015); border: 1px solid #c87d4044; }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  thead tr { border-bottom: 2px solid var(--border2); }
+  th { padding: 8px 12px; text-align: left; font-size: .7rem; font-weight: 700;
+       text-transform: uppercase; letter-spacing: .07em; color: var(--muted); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .num { font-family: var(--mono); text-align: right; }
+  .rank-badge { display: inline-flex; align-items: center; justify-content: center;
+                width: 22px; height: 22px; border-radius: 50%; font-size: .72rem;
+                font-weight: 700; font-family: var(--mono); }
+  .r1 { background: rgba(245,197,66,.2);  color: var(--yellow); }
+  .r2 { background: rgba(170,180,204,.15); color: #aab4cc; }
+  .r3 { background: rgba(200,125,64,.15);  color: #c87d40; }
+  .rn { background: var(--surface2); color: var(--muted); }
+  .correct   { color: var(--green); font-weight: 600; }
+  .incorrect { color: var(--red); }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+  }
+  .pill-g { background: rgba(62,207,142,.12); color: var(--green); }
+  .pill-r { background: rgba(240,96,112,.12); color: var(--red); }
+  .pill-m { background: rgba(122,130,160,.12); color: var(--muted); }
+
+  /* ── Question list ───────────────────────────────────────────────────── */
+  .q-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 8px;
+    cursor: pointer; transition: background .15s, border-color .15s;
+    background: var(--surface);
+  }
+  .q-row:hover { background: var(--surface2); border-color: var(--border2); }
+  .q-num { font-family: var(--mono); font-size: .75rem; color: var(--muted); min-width: 24px; }
+  .q-text { flex: 1; font-size: .87rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .q-meta { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .q-pct { font-family: var(--mono); font-size: .78rem;
+           padding: 2px 8px; border-radius: 20px; }
+
+  /* ── Progress bars ───────────────────────────────────────────────────── */
+  .pbar-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .pbar-row { display: flex; align-items: center; gap: 10px; font-size: .82rem; }
+  .pbar-label { min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pbar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .pbar-fill  { height: 100%; border-radius: 4px; transition: width .4s ease; }
+  .pbar-count { min-width: 24px; text-align: right; color: var(--muted); font-family: var(--mono); font-size: .78rem; }
+
+  /* ── Player cards ────────────────────────────────────────────────────── */
+  .player-card {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 8px;
+    cursor: pointer; background: var(--surface); transition: background .15s, border-color .15s;
+  }
+  .player-card:hover { background: var(--surface2); border-color: var(--border2); }
+  .player-avatar {
+    width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+  }
+  .player-info { flex: 1; }
+  .player-name { font-weight: 600; font-size: .9rem; }
+  .player-sub  { font-size: .75rem; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .player-pts  { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; }
+
+  /* ── Charts ──────────────────────────────────────────────────────────── */
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* ── Detail header ───────────────────────────────────────────────────── */
+  .detail-back {
+    display: inline-flex; align-items: center; gap: 6px; font-size: .82rem;
+    color: var(--accent); margin-bottom: 16px; transition: opacity .15s;
+  }
+  .detail-back:hover { opacity: .75; }
+  .detail-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+  .detail-sub   { font-size: .8rem; color: var(--muted); }
+
+  /* ── Scrollbar ───────────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Animations ──────────────────────────────────────────────────────── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .fade-in { animation: fadeIn .22s ease forwards; }
+
+  /* ── Error ───────────────────────────────────────────────────────────── */
+  .error-box { background: rgba(240,96,112,.08); border: 1px solid rgba(240,96,112,.3);
+               border-radius: var(--r); padding: 14px 18px; color: var(--red); font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<!-- ── Drop zone ─────────────────────────────────────────────────────── -->
+<div id="dropzone">
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+  </svg>
+  <h1>Praxis — Visualiseur de résultats</h1>
+  <p>Glissez un fichier <strong>JSON</strong> ou <strong>CSV</strong> exporté depuis Praxis<br>
+     (export global ou export joueur)</p>
+  <button id="file-btn" onclick="document.getElementById('file-input').click()">
+    Choisir un fichier
+  </button>
+  <input type="file" id="file-input" accept=".json,.csv">
+  <p id="drop-error" style="color:var(--red);display:none;"></p>
+</div>
+
+<!-- ── App ───────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div id="hdr">
+    <div id="hdr-title">
+      <h2 id="hdr-subject">—</h2>
+      <span id="hdr-meta">—</span>
+    </div>
+    <span id="hdr-badge" class="badge badge-blue">JSON</span>
+    <button id="hdr-back" onclick="resetApp()">← Nouveau fichier</button>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" data-tab="overview" onclick="switchTab('overview')">Vue globale</button>
+    <button class="nav-btn" data-tab="questions"  onclick="switchTab('questions')">Questions</button>
+    <button class="nav-btn" data-tab="players"    onclick="switchTab('players')">Joueurs</button>
+  </div>
+  <div id="content"></div>
+</div>
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────
+let STATE = null; // { type, subject, date, players, questions, sourceType }
+// players: [{username, points, rank, correct, incorrect, noAnswer, avgTime}]
+// questions: [{question, answers, solutions, playerAnswers:[{playerName,answerIds,responseTime,pointsBefore,pointsGained,pointsAfter,rank}], correctPct}]
+
+// ── Palette joueurs ────────────────────────────────────────────────────
+const PALETTES = [
+  ['#5b8dee','#1a3a6e'],['#3ecf8e','#0f4a30'],['#f5c542','#6b520f'],
+  ['#f06070','#6b0f1e'],['#a78bfa','#3b1f7a'],['#fb923c','#7a2e0a'],
+  ['#34d399','#064e3b'],['#60a5fa','#1e3a5f'],
+];
+const playerColor = (i) => PALETTES[i % PALETTES.length][0];
+const playerBg    = (i) => PALETTES[i % PALETTES.length][1];
+
+// ── CSV parser ─────────────────────────────────────────────────────────
+function parseCsvLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const header = parseCsvLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const l = lines[i].trim();
+    if (!l || l.startsWith('SYNTHESE') || l.startsWith('Bonnes:')) continue;
+    const cols = parseCsvLine(l);
+    const obj = {};
+    header.forEach((h, j) => obj[h.trim()] = (cols[j] || '').trim());
+    rows.push(obj);
+  }
+  return { header, rows };
+}
+
+// ── Detect & normalise CSV ─────────────────────────────────────────────
+function normalizeCsv({ header, rows }) {
+  const hasJoueur = header.includes('Joueur');
+  // CSV global (avec colonne Joueur) ou CSV joueur (sans)
+  const isGlobal  = hasJoueur;
+
+  // Collecter les questions uniques (dans l'ordre d'apparition)
+  const questionMap = new Map();
+  rows.forEach(r => {
+    const q = r['Question'] || r['question'] || '';
+    if (!q) return;
+    if (!questionMap.has(q)) {
+      questionMap.set(q, {
+        question: q,
+        answers: (r['Reponses disponibles'] || '').split(' | '),
+        solutions: (r['Reponse(s) correcte(s)'] || '').split(' | '),
+        playerAnswers: [],
+      });
+    }
+    const qa = questionMap.get(q);
+    const joueur = isGlobal ? r['Joueur'] : (r['Joueur'] || 'Joueur');
+    qa.playerAnswers.push({
+      playerName: joueur,
+      answerText: r["Reponse(s) donnee(s)"] || '',
+      correct: r['Correct'] === 'Oui',
+      responded: r['Correct'] !== '',
+      responseTime: parseFloat(r['Temps (s)']) * 1000 || null,
+      pointsBefore: r['Points avant'] !== '' ? +r['Points avant'] : null,
+      pointsGained: r['Points gagnes'] !== '' ? +r['Points gagnes'] : null,
+      pointsAfter:  r['Points apres']  !== '' ? +r['Points apres']  : null,
+      rank: r['Classement final'] || r['Classement intermediaire'] || null,
+    });
+  });
+
+  const questions = [...questionMap.values()].map(q => {
+    const answered = q.playerAnswers.filter(p => p.responded).length;
+    const correct  = q.playerAnswers.filter(p => p.correct).length;
+    q.correctPct = answered > 0 ? Math.round(correct / q.playerAnswers.length * 100) : 0;
+    return q;
+  });
+
+  // Reconstituer les joueurs depuis les données
+  const playerMap = new Map();
+  rows.forEach(r => {
+    const name = isGlobal ? r['Joueur'] : (r['Joueur'] || 'Joueur');
+    if (!name) return;
+    if (!playerMap.has(name)) {
+      playerMap.set(name, { username: name, correct: 0, incorrect: 0, noAnswer: 0, totalTime: 0, timeCount: 0 });
+    }
+    const p = playerMap.get(name);
+    if (r['Correct'] === 'Oui') p.correct++;
+    else if (r['Correct'] === 'Non') p.incorrect++;
+    else p.noAnswer++;
+    const t = parseFloat(r['Temps (s)']);
+    if (!isNaN(t)) { p.totalTime += t; p.timeCount++; }
+  });
+
+  // Points finaux = dernier Points apres par joueur
+  playerMap.forEach((p, name) => {
+    const lastRow = [...rows].reverse().find(r => (isGlobal ? r['Joueur'] : 'Joueur') === name && r['Points apres'] !== '');
+    p.points = lastRow ? +lastRow['Points apres'] : null;
+    p.avgTime = p.timeCount > 0 ? (p.totalTime / p.timeCount) : null;
+  });
+
+  // Tri par points desc
+  const players = [...playerMap.values()].sort((a, b) => (b.points||0) - (a.points||0));
+  players.forEach((p, i) => { if (p.rank == null) p.rank = i + 1; });
+
+  // Extraire date / sujet depuis le nom de fichier ou laisser vide
+  return { players, questions, sourceType: isGlobal ? 'csv-global' : 'csv-player' };
+}
+
+// ── Normalise JSON ─────────────────────────────────────────────────────
+function normalizeJson(data) {
+  const questions = (data.questions || []).map(q => {
+    const pa = (q.playerAnswers || []).map(a => {
+      const snap = (q.leaderboardSnapshot || []).find(s => s.username === a.playerName);
+      return {
+        playerName:   a.playerName,
+        answerIds:    a.answerIds,
+        answerText:   a.answerIds ? a.answerIds.map(i => q.answers[i] || '').join(' | ') : '',
+        correct:      a.answerIds != null && a.answerIds.some(i => (q.solutions||[]).includes(i)),
+        responded:    a.answerIds != null && a.answerIds.length > 0,
+        responseTime: a.responseTime,
+        pointsBefore: snap ? snap.pointsAfter - snap.pointsGained : null,
+        pointsGained: snap ? snap.pointsGained : null,
+        pointsAfter:  snap ? snap.pointsAfter  : null,
+        rank:         snap ? snap.rank : null,
+      };
+    });
+    const answered = pa.filter(p => p.responded).length;
+    const correct  = pa.filter(p => p.correct).length;
+    return {
+      question:    q.question,
+      answers:     q.answers || [],
+      solutions:   (q.solutions || []).map(i => q.answers[i] || ''),
+      playerAnswers: pa,
+      correctPct:  pa.length > 0 ? Math.round(correct / pa.length * 100) : 0,
+    };
+  });
+
+  const players = (data.players || []).map(p => {
+    const answers = questions.flatMap(q => q.playerAnswers.filter(a => a.playerName === p.username));
+    const times   = answers.map(a => a.responseTime).filter(t => t != null);
+    return {
+      username: p.username,
+      points:   p.points,
+      rank:     p.rank,
+      correct:  answers.filter(a => a.correct).length,
+      incorrect:answers.filter(a => !a.correct && a.responded).length,
+      noAnswer: answers.filter(a => !a.responded).length,
+      avgTime:  times.length ? times.reduce((a,b)=>a+b,0)/times.length/1000 : null,
+    };
+  });
+
+  return { players, questions, sourceType: 'json' };
+}
+
+// ── Load file ──────────────────────────────────────────────────────────
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    try {
+      let norm;
+      const isJson = file.name.endsWith('.json');
+      if (isJson) {
+        norm = normalizeJson(JSON.parse(text));
+      } else {
+        norm = normalizeCsv(parseCsv(text));
+      }
+      // Extraire sujet/date du nom de fichier
+      const nameParts = file.name.replace(/\.(json|csv)$/,'').split('-');
+      STATE = {
+        ...norm,
+        subject: nameParts.slice(1, -2).join(' ') || file.name,
+        date:    file.name,
+        fileType: isJson ? 'JSON' : 'CSV',
+      };
+      launchApp();
+    } catch(err) {
+      showError('Fichier invalide ou format non reconnu : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showError(msg) {
+  const el = document.getElementById('drop-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// ── App lifecycle ──────────────────────────────────────────────────────
+function launchApp() {
+  document.getElementById('dropzone').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+  document.getElementById('hdr-subject').textContent = STATE.subject || 'Résultats';
+  document.getElementById('hdr-meta').textContent =
+    STATE.players.length + ' joueur' + (STATE.players.length>1?'s':'') +
+    ' · ' + STATE.questions.length + ' question' + (STATE.questions.length>1?'s':'');
+  document.getElementById('hdr-badge').textContent = STATE.fileType;
+  switchTab('overview');
+}
+
+function resetApp() {
+  STATE = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('dropzone').style.display = 'flex';
+  document.getElementById('drop-error').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  // Detruire les charts
+  Chart.helpers.each(Chart.instances, c => c.destroy());
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  const el = document.getElementById('content');
+  el.innerHTML = '';
+  if (tab === 'overview')   renderOverview(el);
+  if (tab === 'questions')  renderQuestions(el);
+  if (tab === 'players')    renderPlayers(el);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function rankBadge(r) {
+  const cls = r===1?'r1':r===2?'r2':r===3?'r3':'rn';
+  return `<span class="rank-badge ${cls}">${r}</span>`;
+}
+function fmtTime(ms) {
+  if (ms == null) return '—';
+  return (ms/1000).toFixed(3) + 's';
+}
+function fmtPts(n) {
+  if (n == null || n === '') return '—';
+  return (+n).toLocaleString('fr-FR');
+}
+function correctPill(c, responded) {
+  if (!responded) return '<span class="pill pill-m">Sans réponse</span>';
+  return c ? '<span class="pill pill-g">✓ Correct</span>' : '<span class="pill pill-r">✗ Incorrect</span>';
+}
+function pctColor(pct) {
+  if (pct >= 70) return 'var(--green)';
+  if (pct >= 40) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+// ── Overview ───────────────────────────────────────────────────────────
+function renderOverview(el) {
+  el.classList.add('fade-in');
+  const { players, questions } = STATE;
+
+  // Stats globales
+  const totalQ = questions.length;
+  const avgCorrect = questions.length ? Math.round(questions.reduce((a,q)=>a+q.correctPct,0)/questions.length) : 0;
+  const allTimes = players.map(p=>p.avgTime).filter(t=>t!=null);
+  const avgTime  = allTimes.length ? allTimes.reduce((a,b)=>a+b,0)/allTimes.length : null;
+
+  // Podium
+  const top3 = players.slice(0,3);
+  const podSlots = top3.length >= 2
+    ? (top3.length === 3
+        ? [top3[1], top3[0], top3[2]]
+        : [top3[1], top3[0]])
+    : [top3[0]];
+  const podClasses = top3.length === 3 ? ['p2','p1','p3'] : top3.length === 2 ? ['p2','p1'] : ['p1'];
+  const podEmojis  = ['🥈','🥇','🥉'];
+  const podEmojiMap = top3.length === 3 ? [1,0,2] : top3.length === 2 ? [1,0] : [0];
+
+  const podHtml = podSlots.map((p, i) => {
+    const ci = podClasses[i];
+    const emoji = podEmojis[podEmojiMap[i]];
+    const pi = players.indexOf(p);
+    return `<div class="podium-slot ${ci}">
+      <div class="podium-name" style="color:${playerColor(pi)}">${p.username}</div>
+      <div class="podium-pts">${fmtPts(p.points)} pts</div>
+      <div class="podium-bar">${emoji}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="grid-4" style="margin-bottom:16px">
+      <div class="stat"><div class="stat-label">Joueurs</div><div class="stat-value">${players.length}</div></div>
+      <div class="stat"><div class="stat-label">Questions</div><div class="stat-value">${totalQ}</div></div>
+      <div class="stat"><div class="stat-label">Taux de réussite</div><div class="stat-value" style="color:${pctColor(avgCorrect)}">${avgCorrect}%</div></div>
+      <div class="stat"><div class="stat-label">Temps moyen</div><div class="stat-value">${avgTime!=null?avgTime.toFixed(2)+'s':'—'}</div><div class="stat-sub">par réponse</div></div>
+    </div>
+
+    ${players.length > 1 ? `<div class="card" style="margin-bottom:16px">
+      <div class="card-title">Podium</div>
+      <div id="podium">${podHtml}</div>
+    </div>` : ''}
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Évolution des points</div>
+      <div class="chart-wrap"><canvas id="chart-prog"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Classement final</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Rang</th><th>Joueur</th><th class="num">Points</th>
+            <th class="num">Bonnes</th><th class="num">Mauvaises</th><th class="num">Sans rép.</th>
+            <th class="num">Tps moyen</th>
+          </tr></thead>
+          <tbody>
+            ${players.map((p,i) => `<tr>
+              <td>${rankBadge(p.rank||i+1)}</td>
+              <td><span style="color:${playerColor(i)};font-weight:600">${p.username}</span></td>
+              <td class="num" style="font-family:var(--mono);font-weight:700">${fmtPts(p.points)}</td>
+              <td class="num correct">${p.correct}</td>
+              <td class="num incorrect">${p.incorrect}</td>
+              <td class="num" style="color:var(--muted)">${p.noAnswer}</td>
+              <td class="num" style="color:var(--muted)">${p.avgTime!=null?p.avgTime.toFixed(3)+'s':'—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // Chart progression
+  renderProgressChart('chart-prog', players, questions);
+}
+
+function renderProgressChart(canvasId, players, questions) {
+  const labels = questions.map((q, i) => 'Q' + (i+1));
+  const datasets = players.map((p, pi) => {
+    const data = questions.map(q => {
+      const pa = q.playerAnswers.find(a => a.playerName === p.username);
+      return pa?.pointsAfter ?? null;
+    });
+    return {
+      label: p.username,
+      data,
+      borderColor: playerColor(pi),
+      backgroundColor: playerColor(pi) + '22',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: .35,
+      fill: false,
+    };
+  });
+
+  new Chart(document.getElementById(canvasId), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#7a82a0', font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#1c2030', borderColor: '#252a3a', borderWidth: 1,
+          titleColor: '#e8eaf2', bodyColor: '#7a82a0',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString('fr-FR')} pts` }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1c2030' }, ticks: { color: '#7a82a0', font: { size: 11 } } },
+        y: { grid: { color: '#1c2030' }, ticks: { color: '#7a82a0', font: { size: 11 },
+             callback: v => v.toLocaleString('fr-FR') } }
+      }
+    }
+  });
+}
+
+// ── Questions ──────────────────────────────────────────────────────────
+function renderQuestions(el) {
+  el.classList.add('fade-in');
+  const { questions } = STATE;
+
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-size:.8rem;color:var(--muted)">${questions.length} question${questions.length>1?'s':''}</div>
+    ${questions.map((q,i) => {
+      const pct = q.correctPct;
+      return `<div class="q-row" onclick="renderQuestionDetail(${i})">
+        <span class="q-num">${i+1}</span>
+        <span class="q-text" title="${q.question}">${q.question}</span>
+        <div class="q-meta">
+          <span class="q-pct" style="background:${pctColor(pct)}22;color:${pctColor(pct)}">${pct}%</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function renderQuestionDetail(qi) {
+  const el = document.getElementById('content');
+  el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in');
+  const { questions, players } = STATE;
+  const q = questions[qi];
+
+  // Distribution des réponses
+  const answerCounts = q.answers.map((_, ai) =>
+    q.playerAnswers.filter(pa => pa.answerIds ? pa.answerIds.includes(ai) : pa.answerText.includes(q.answers[ai])).length
+  );
+  const maxCount = Math.max(1, ...answerCounts);
+  const colors = ['#5b8dee','#3ecf8e','#f5c542','#f06070'];
+
+  const barsHtml = q.answers.map((ans, ai) => {
+    const isCorrect = q.solutions.includes(ans) || (q.solutions[ai] && true);
+    const cnt = answerCounts[ai];
+    const pct = Math.round(cnt / maxCount * 100);
+    // Verifier si c'est une solution
+    const isSol = q.solutions && q.solutions.includes(ans);
+    return `<div class="pbar-row">
+      <span class="pbar-label" title="${ans}" style="color:${isSol?'var(--green)':'var(--text)'};${isSol?'font-weight:600':''}">
+        ${isSol ? '✓ ' : ''}${ans}
+      </span>
+      <div class="pbar-track">
+        <div class="pbar-fill" style="width:${pct}%;background:${isSol?'var(--green)':colors[ai%4]}66"></div>
+      </div>
+      <span class="pbar-count">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <button class="detail-back" onclick="renderQuestions(document.getElementById('content'))">
+      ← Retour aux questions
+    </button>
+    <div class="detail-title">Q${qi+1} — ${q.question}</div>
+    <div class="detail-sub" style="margin-bottom:16px">${q.correctPct}% de réussite · ${q.playerAnswers.length} joueur${q.playerAnswers.length>1?'s':''}</div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Distribution des réponses</div>
+        <div class="pbar-wrap">${barsHtml}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Répartition</div>
+        <div class="chart-wrap"><canvas id="chart-q"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Détail par joueur</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Joueur</th><th>Réponse</th><th>Résultat</th>
+            <th class="num">Temps</th>
+            <th class="num">Pts avant</th><th class="num">Pts gagnés</th><th class="num">Pts après</th>
+            <th class="num">Rang</th>
+          </tr></thead>
+          <tbody>
+            ${q.playerAnswers.map(pa => {
+              const pi = players.findIndex(p => p.username === pa.playerName);
+              return `<tr>
+                <td style="color:${playerColor(pi<0?0:pi)};font-weight:600">${pa.playerName}</td>
+                <td style="font-size:.82rem;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${pa.answerText||'—'}">${pa.answerText||'—'}</td>
+                <td>${correctPill(pa.correct, pa.responded)}</td>
+                <td class="num" style="font-family:var(--mono);font-size:.8rem">${fmtTime(pa.responseTime)}</td>
+                <td class="num" style="font-family:var(--mono);font-size:.8rem">${fmtPts(pa.pointsBefore)}</td>
+                <td class="num" style="font-family:var(--mono);font-size:.8rem;color:${pa.pointsGained>0?'var(--green)':pa.pointsGained<0?'var(--red)':'var(--muted)'}">${pa.pointsGained!=null?(pa.pointsGained>0?'+':'')+pa.pointsGained.toLocaleString('fr-FR'):'—'}</td>
+                <td class="num" style="font-family:var(--mono);font-size:.8rem">${fmtPts(pa.pointsAfter)}</td>
+                <td class="num">${pa.rank ? rankBadge(+pa.rank) : '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // Pie chart réponses
+  new Chart(document.getElementById('chart-q'), {
+    type: 'doughnut',
+    data: {
+      labels: q.answers,
+      datasets: [{
+        data: answerCounts,
+        backgroundColor: colors.map(c => c + '99'),
+        borderColor: colors,
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#7a82a0', font: { size: 10 }, boxWidth: 10 } },
+        tooltip: {
+          backgroundColor: '#1c2030', borderColor: '#252a3a', borderWidth: 1,
+          titleColor: '#e8eaf2', bodyColor: '#7a82a0',
+        }
+      },
+      cutout: '60%',
+    }
+  });
+}
+
+// ── Players ────────────────────────────────────────────────────────────
+function renderPlayers(el) {
+  el.classList.add('fade-in');
+  const { players } = STATE;
+  el.innerHTML = players.map((p, i) => `
+    <div class="player-card" onclick="renderPlayerDetail(${i})">
+      <div class="player-avatar" style="background:${playerBg(i)};color:${playerColor(i)}">
+        ${p.username.charAt(0).toUpperCase()}
+      </div>
+      <div class="player-info">
+        <div class="player-name" style="color:${playerColor(i)}">${p.username}</div>
+        <div class="player-sub">
+          ${p.correct}✓ ${p.incorrect}✗ ${p.noAnswer?p.noAnswer+'⊘':''} 
+          ${p.avgTime != null ? '· ' + p.avgTime.toFixed(3) + 's moy.' : ''}
+        </div>
+      </div>
+      <div>
+        ${rankBadge(p.rank||i+1)}
+      </div>
+      <div class="player-pts" style="color:${playerColor(i)}">${fmtPts(p.points)}</div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  `).join('');
+}
+
+function renderPlayerDetail(pi) {
+  const el = document.getElementById('content');
+  el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in');
+  const { players, questions } = STATE;
+  const p = players[pi];
+
+  const playerQs = questions.map((q, qi) => {
+    const pa = q.playerAnswers.find(a => a.playerName === p.username);
+    return { qi, q, pa };
+  }).filter(x => x.pa);
+
+  const times = playerQs.map(x => x.pa.responseTime).filter(t => t!=null);
+  const avgTime = times.length ? times.reduce((a,b)=>a+b,0)/times.length : null;
+  const correct = playerQs.filter(x => x.pa.correct).length;
+  const incorrect = playerQs.filter(x => !x.pa.correct && x.pa.responded).length;
+  const noAnswer = playerQs.filter(x => !x.pa.responded).length;
+
+  el.innerHTML = `
+    <button class="detail-back" onclick="renderPlayers(document.getElementById('content'))">
+      ← Retour aux joueurs
+    </button>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div class="player-avatar" style="background:${playerBg(pi)};color:${playerColor(pi)};width:48px;height:48px;font-size:1.3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">
+        ${p.username.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <div class="detail-title" style="color:${playerColor(pi)}">${p.username}</div>
+        <div class="detail-sub">${rankBadge(p.rank||pi+1)} &nbsp;${fmtPts(p.points)} points finaux</div>
+      </div>
+    </div>
+
+    <div class="grid-4" style="margin-bottom:16px">
+      <div class="stat"><div class="stat-label">Bonnes rép.</div><div class="stat-value correct">${correct}</div></div>
+      <div class="stat"><div class="stat-label">Mauvaises</div><div class="stat-value incorrect">${incorrect}</div></div>
+      <div class="stat"><div class="stat-label">Sans réponse</div><div class="stat-value" style="color:var(--muted)">${noAnswer}</div></div>
+      <div class="stat"><div class="stat-label">Temps moyen</div><div class="stat-value">${avgTime!=null?(avgTime/1000).toFixed(3)+'s':'—'}</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Progression des points</div>
+      <div class="chart-wrap"><canvas id="chart-p"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Détail question par question</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Question</th><th>Réponse</th><th>Résultat</th>
+            <th class="num">Temps</th>
+            <th class="num">Avant</th><th class="num">Gagnés</th><th class="num">Après</th>
+            <th class="num">Rang</th>
+          </tr></thead>
+          <tbody>
+            ${playerQs.map(({qi, q, pa}) => `<tr>
+              <td class="num" style="color:var(--muted);font-family:var(--mono);font-size:.78rem">${qi+1}</td>
+              <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem" title="${q.question}">${q.question}</td>
+              <td style="font-size:.78rem;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${pa.answerText||'—'}">${pa.answerText||'—'}</td>
+              <td>${correctPill(pa.correct, pa.responded)}</td>
+              <td class="num" style="font-family:var(--mono);font-size:.8rem">${fmtTime(pa.responseTime)}</td>
+              <td class="num" style="font-family:var(--mono);font-size:.78rem">${fmtPts(pa.pointsBefore)}</td>
+              <td class="num" style="font-family:var(--mono);font-size:.78rem;color:${pa.pointsGained>0?'var(--green)':pa.pointsGained<0?'var(--red)':'var(--muted)'}">${pa.pointsGained!=null?(pa.pointsGained>0?'+':'')+pa.pointsGained.toLocaleString('fr-FR'):'—'}</td>
+              <td class="num" style="font-family:var(--mono);font-size:.78rem">${fmtPts(pa.pointsAfter)}</td>
+              <td class="num">${pa.rank ? rankBadge(+pa.rank) : '—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // Chart progression joueur
+  const labels = playerQs.map(x => 'Q'+(x.qi+1));
+  const data   = playerQs.map(x => x.pa.pointsAfter);
+  new Chart(document.getElementById('chart-p'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: p.username,
+        data,
+        borderColor: playerColor(pi),
+        backgroundColor: playerColor(pi) + '22',
+        borderWidth: 2, pointRadius: 4, tension: .35, fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2030', borderColor: '#252a3a', borderWidth: 1,
+          titleColor: '#e8eaf2', bodyColor: '#7a82a0',
+          callbacks: { label: ctx => ` ${ctx.parsed.y?.toLocaleString('fr-FR')} pts` }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1c2030' }, ticks: { color: '#7a82a0', font: { size: 11 } } },
+        y: { grid: { color: '#1c2030' }, ticks: { color: '#7a82a0', font: { size: 11 },
+             callback: v => v?.toLocaleString('fr-FR') } }
+      }
+    }
+  });
+}
+
+// ── Drag & drop ────────────────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+</script>
+</body>
+</html>
